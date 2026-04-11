@@ -204,15 +204,17 @@ export default function Settings() {
               </div>
               
               <Dialog open={showDeactivateDialog} onOpenChange={setShowDeactivateDialog}>
-                <DialogTrigger asChild>
-                  <Button 
-                    variant="destructive" 
-                    className="bg-red-600 hover:bg-red-700"
-                  >
-                    <Trash2 className="w-4 h-4 mr-2" />
-                    Deactivate
-                  </Button>
-                </DialogTrigger>
+                <DialogTrigger
+                  render={
+                    <Button 
+                      variant="destructive" 
+                      className="bg-red-600 hover:bg-red-700"
+                    >
+                      <Trash2 className="w-4 h-4 mr-2" />
+                      Deactivate
+                    </Button>
+                  }
+                />
                 <DialogContent className="bg-zinc-900 border-zinc-800 text-white">
                   <DialogHeader>
                     <DialogTitle className="flex items-center gap-2 text-red-500">
