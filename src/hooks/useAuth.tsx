@@ -43,6 +43,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     if (!user) return;
 
+    // Check if email is verified
+    if (!user.emailVerified) {
+      setUserData(null);
+      setLoading(false);
+      return;
+    }
+
     setLoading(true);
     const userDocRef = doc(db, 'users', user.uid);
     const unsubscribeUser = onSnapshot(userDocRef, (docSnap) => {
@@ -51,7 +58,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       } else {
         const newUserData: UserData = {
           email: user.email || '',
-          subscriptionStatus: 'none',
+          subscriptionStatus: 'active', // Everyone is active by default
         };
         setDoc(userDocRef, newUserData);
         setUserData(newUserData);

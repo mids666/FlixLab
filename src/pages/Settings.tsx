@@ -16,9 +16,8 @@ import {
   DialogTrigger 
 } from '@/components/ui/dialog';
 import { toast } from 'sonner';
-import { Camera, Trash2, User as UserIcon, AlertTriangle, ExternalLink } from 'lucide-react';
+import { Camera, Trash2, User as UserIcon, AlertTriangle, Mail } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
-import PatreonConnect from '../components/PatreonConnect';
 
 export default function Settings() {
   const { user, userData, currentProfile } = useAuth();
@@ -152,19 +151,36 @@ export default function Settings() {
           </CardContent>
         </Card>
 
-        {/* Subscription Settings */}
+        {/* Account Settings */}
         <Card className="bg-zinc-900 border-zinc-800 text-white">
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
-              <ExternalLink className="w-5 h-5 text-red-600" />
-              Subscription & Membership
+              <Mail className="w-5 h-5 text-red-600" />
+              Account Information
             </CardTitle>
             <CardDescription className="text-zinc-400">
-              Manage your premium access via Patreon
+              Your account details and verification status
             </CardDescription>
           </CardHeader>
-          <CardContent>
-            <PatreonConnect />
+          <CardContent className="space-y-4">
+            <div className="flex justify-between items-center p-4 bg-zinc-800/50 rounded-xl">
+              <div>
+                <div className="text-zinc-500 text-xs uppercase font-bold mb-1">Email Address</div>
+                <div className="text-white">{user?.email}</div>
+              </div>
+              <div className="px-3 py-1 bg-green-500/20 text-green-500 text-[10px] font-black rounded-full uppercase tracking-widest">
+                Verified
+              </div>
+            </div>
+            <div className="flex justify-between items-center p-4 bg-zinc-800/50 rounded-xl">
+              <div>
+                <div className="text-zinc-500 text-xs uppercase font-bold mb-1">Subscription Plan</div>
+                <div className="text-white">NeoFlix Free Premium</div>
+              </div>
+              <div className="px-3 py-1 bg-red-600 text-white text-[10px] font-black rounded-full uppercase tracking-widest">
+                Active
+              </div>
+            </div>
           </CardContent>
         </Card>
 

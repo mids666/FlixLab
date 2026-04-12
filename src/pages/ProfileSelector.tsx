@@ -5,12 +5,11 @@ import { db } from '../lib/firebase';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
-import { Plus, User, Check, Lock, ShieldCheck, ExternalLink, LogOut } from 'lucide-react';
+import { Plus, User, Check, Mail, LogOut } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { toast } from 'sonner';
-import PatreonConnect from '../components/PatreonConnect';
 import { auth } from '../lib/firebase';
-import { signOut } from 'firebase/auth';
+import { signOut, sendEmailVerification } from 'firebase/auth';
 import { useNavigate } from 'react-router-dom';
 
 const AVATARS = [
@@ -26,13 +25,25 @@ export default function ProfileSelector() {
   const [newProfileName, setNewProfileName] = useState('');
   const [selectedAvatar, setSelectedAvatar] = useState(AVATARS[0]);
   const [isAdding, setIsAdding] = useState(false);
-  const [showSubscription, setShowSubscription] = useState(false);
-  const [showPayment, setShowPayment] = useState(false);
+  const [isResending, setIsResending] = useState(false);
   const navigate = useNavigate();
 
   const handleSignOut = async () => {
     await signOut(auth);
     navigate('/login');
+  };
+
+  const handleResendVerification = async () => {
+    if (!user) return;
+    setIsResending(true);
+    try {
+      await sendEmailVerification(user);
+      toast.success('Verification email sent! Please check your inbox.');
+    } catch (error: any) {
+      toast.error(error.message);
+    } finally {
+      setIsResending(false);
+    }
   };
 
   const handleAddProfile = async () => {
@@ -52,27 +63,7 @@ export default function ProfileSelector() {
     }
   };
 
-  const handlePaymentSuccess = async (transactionId: string) => {
-    if (user) {
-      try {
-        const userDocRef = doc(db, 'users', user.uid);
-        await setDoc(userDocRef, {
-          subscriptionStatus: 'active',
-          subscriptionEndsAt: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(),
-          lastTransactionId: transactionId,
-        }, { merge: true });
-        toast.success('Subscription activated!');
-        setShowSubscription(false);
-        setShowPayment(false);
-      } catch (error: any) {
-        toast.error(error.message);
-      }
-    }
-  };
-
-  const hasSubscription = userData?.subscriptionStatus === 'active' || userData?.subscriptionStatus === 'trialing';
-
-  if (!hasSubscription && !showSubscription && !showPayment) {
+  if (user && !user.emailVerified) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-[#0a0a0a] p-4">
         <motion.div 
@@ -81,20 +72,20 @@ export default function ProfileSelector() {
           className="max-w-md w-full bg-zinc-900 border border-zinc-800 rounded-3xl p-8 text-center"
         >
           <div className="w-20 h-20 bg-red-600/20 rounded-full flex items-center justify-center mx-auto mb-6">
-            <Lock className="w-10 h-10 text-red-600" />
+            <Mail className="w-10 h-10 text-red-600" />
           </div>
-          <h2 className="text-3xl font-bold text-white mb-4">Unlock NeoFlix</h2>
+          <h2 className="text-3xl font-bold text-white mb-4">Verify Your Email</h2>
           <p className="text-zinc-400 mb-8">
-            Get unlimited access to thousands of movies and TV shows by becoming a patron. 
-            Connect your Patreon account to start your premium experience!
+            We've sent a verification email to <span className="text-white font-bold">{user.email}</span>. 
+            Please verify your email to access NeoFlix.
           </p>
           <div className="space-y-4">
             <Button 
               className="w-full bg-red-600 hover:bg-red-700 h-14 text-lg font-bold gap-2"
-              onClick={() => setShowSubscription(true)}
+              onClick={handleResendVerification}
+              disabled={isResending}
             >
-              <ExternalLink className="w-5 h-5" />
-              Connect Patreon
+              {isResending ? 'Sending...' : 'Resend Verification Email'}
             </Button>
             <Button 
               variant="ghost"
@@ -104,26 +95,9 @@ export default function ProfileSelector() {
               <LogOut className="w-4 h-4" />
               Sign Out / Back to Login
             </Button>
-            <p className="text-xs text-zinc-500">Subscription managed via Patreon. Cancel anytime.</p>
+            <p className="text-xs text-zinc-500">After verifying, please refresh this page or sign in again.</p>
           </div>
         </motion.div>
-      </div>
-    );
-  }
-
-  if (showSubscription) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-[#0a0a0a] p-4">
-        <div className="max-w-md w-full">
-          <PatreonConnect />
-          <Button 
-            variant="ghost" 
-            className="w-full mt-4 text-zinc-500 hover:text-white"
-            onClick={() => setShowSubscription(false)}
-          >
-            Back
-          </Button>
-        </div>
       </div>
     );
   }

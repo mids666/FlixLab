@@ -5,7 +5,9 @@ import {
   createUserWithEmailAndPassword, 
   signInWithPopup, 
   sendPasswordResetEmail,
-  updateProfile 
+  sendEmailVerification,
+  updateProfile,
+  signOut
 } from 'firebase/auth';
 import { auth, googleProvider, db } from '../lib/firebase';
 import { doc, setDoc } from 'firebase/firestore';
@@ -35,11 +37,22 @@ export default function Login() {
     setLoading(true);
     try {
       if (isLogin) {
-        await signInWithEmailAndPassword(auth, email, password);
+        const userCredential = await signInWithEmailAndPassword(auth, email, password);
+        const user = userCredential.user;
+        
+        if (!user.emailVerified) {
+          toast.error('Please verify your email before signing in. Check your inbox.');
+          await signOut(auth);
+          return;
+        }
+        
         toast.success('Logged in successfully');
       } else {
         const userCredential = await createUserWithEmailAndPassword(auth, email, password);
         const user = userCredential.user;
+        
+        // Send verification email
+        await sendEmailVerification(user);
         
         // Update profile with name
         await updateProfile(user, { displayName: name });
@@ -49,11 +62,12 @@ export default function Login() {
           email: user.email,
           name: name,
           country: country,
-          subscriptionStatus: 'none',
+          subscriptionStatus: 'active',
           createdAt: new Date().toISOString()
         });
 
-        toast.success('Account created successfully');
+        toast.success('Account created! Please check your email to verify your account.');
+        setIsLogin(true);
       }
     } catch (error: any) {
       toast.error(error.message);
@@ -105,7 +119,7 @@ export default function Login() {
           <CardHeader>
             <CardTitle>{isLogin ? 'Welcome Back' : 'Create Account'}</CardTitle>
             <CardDescription className="text-zinc-400">
-              {isLogin ? 'Enter your credentials to access your library' : 'Join NeoFlix and start your 7-day free trial'}
+              {isLogin ? 'Enter your credentials to access your library' : 'Join NeoFlix and start streaming for free'}
             </CardDescription>
           </CardHeader>
           <CardContent>
