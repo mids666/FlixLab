@@ -41,8 +41,8 @@ export default function MoviePlayer({ item, isOpen, onClose }: MoviePlayerProps)
 
   const type = item.media_type || (item.title ? 'movie' : 'tv');
   const embedUrl = type === 'movie' 
-    ? `https://vidfast.pro/movie/${item.id}?autoPlay=true`
-    : `https://vidfast.pro/tv/${item.id}/${selectedSeason}/${selectedEpisode}?autoPlay=true`;
+    ? `https://vidsrc.ru/movie/${item.id}`
+    : `https://vidsrc.ru/tv/${item.id}/${selectedSeason}/${selectedEpisode}`;
 
   return (
     <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>

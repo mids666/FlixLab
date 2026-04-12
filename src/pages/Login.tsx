@@ -1,17 +1,31 @@
 import React, { useState } from 'react';
-import { signInWithEmailAndPassword, createUserWithEmailAndPassword, signInWithPopup } from 'firebase/auth';
-import { auth, googleProvider } from '../lib/firebase';
+import { 
+  signInWithEmailAndPassword, 
+  createUserWithEmailAndPassword, 
+  signInWithPopup, 
+  sendPasswordResetEmail,
+  updateProfile 
+} from 'firebase/auth';
+import { auth, googleProvider, db } from '../lib/firebase';
+import { doc, setDoc } from 'firebase/firestore';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { toast } from 'sonner';
-import { LogIn, Mail, Lock, Chrome } from 'lucide-react';
-import { motion } from 'motion/react';
+import { LogIn, Mail, Lock, Chrome, User, Globe } from 'lucide-react';
+import { motion, AnimatePresence } from 'motion/react';
+
+const countries = [
+  "United States", "United Kingdom", "Canada", "Australia", "Germany", 
+  "France", "Japan", "Brazil", "India", "Mexico", "Italy", "Spain", "Other"
+];
 
 export default function Login() {
   const [isLogin, setIsLogin] = useState(true);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [name, setName] = useState('');
+  const [country, setCountry] = useState('');
   const [loading, setLoading] = useState(false);
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -22,13 +36,40 @@ export default function Login() {
         await signInWithEmailAndPassword(auth, email, password);
         toast.success('Logged in successfully');
       } else {
-        await createUserWithEmailAndPassword(auth, email, password);
+        const userCredential = await createUserWithEmailAndPassword(auth, email, password);
+        const user = userCredential.user;
+        
+        // Update profile with name
+        await updateProfile(user, { displayName: name });
+        
+        // Save extra data to Firestore
+        await setDoc(doc(db, 'users', user.uid), {
+          email: user.email,
+          name: name,
+          country: country,
+          subscriptionStatus: 'none',
+          createdAt: new Date().toISOString()
+        });
+
         toast.success('Account created successfully');
       }
     } catch (error: any) {
       toast.error(error.message);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleForgotPassword = async () => {
+    if (!email) {
+      toast.error('Please enter your email address first');
+      return;
+    }
+    try {
+      await sendPasswordResetEmail(auth, email);
+      toast.success('Password reset email sent! Check your inbox.');
+    } catch (error: any) {
+      toast.error(error.message);
     }
   };
 
@@ -67,6 +108,43 @@ export default function Login() {
           </CardHeader>
           <CardContent>
             <form onSubmit={handleSubmit} className="space-y-4">
+              <AnimatePresence mode="wait">
+                {!isLogin && (
+                  <motion.div
+                    initial={{ opacity: 0, height: 0 }}
+                    animate={{ opacity: 1, height: 'auto' }}
+                    exit={{ opacity: 0, height: 0 }}
+                    className="space-y-4 overflow-hidden"
+                  >
+                    <div className="relative">
+                      <User className="absolute left-3 top-3 h-4 w-4 text-zinc-500" />
+                      <Input
+                        type="text"
+                        placeholder="Full Name"
+                        className="bg-zinc-800/50 border-zinc-700 pl-10 focus:ring-red-600"
+                        value={name}
+                        onChange={(e) => setName(e.target.value)}
+                        required={!isLogin}
+                      />
+                    </div>
+                    <div className="relative">
+                      <Globe className="absolute left-3 top-3 h-4 w-4 text-zinc-500" />
+                      <select
+                        className="w-full bg-zinc-800/50 border border-zinc-700 rounded-md pl-10 pr-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-red-600 appearance-none text-zinc-300"
+                        value={country}
+                        onChange={(e) => setCountry(e.target.value)}
+                        required={!isLogin}
+                      >
+                        <option value="" disabled>Select Country</option>
+                        {countries.map(c => (
+                          <option key={c} value={c} className="bg-zinc-900">{c}</option>
+                        ))}
+                      </select>
+                    </div>
+                  </motion.div>
+                )}
+              </AnimatePresence>
+
               <div className="space-y-2">
                 <div className="relative">
                   <Mail className="absolute left-3 top-3 h-4 w-4 text-zinc-500" />
@@ -92,6 +170,17 @@ export default function Login() {
                     required
                   />
                 </div>
+                {isLogin && (
+                  <div className="flex justify-end">
+                    <button
+                      type="button"
+                      onClick={handleForgotPassword}
+                      className="text-xs text-zinc-500 hover:text-red-500 transition-colors"
+                    >
+                      Forgot password?
+                    </button>
+                  </div>
+                )}
               </div>
               <Button type="submit" className="w-full bg-red-600 hover:bg-red-700 text-white font-bold py-6" disabled={loading}>
                 {loading ? 'Processing...' : isLogin ? 'Sign In' : 'Sign Up'}

@@ -1,5 +1,7 @@
 export interface UserData {
   email: string;
+  name?: string;
+  country?: string;
   subscriptionStatus: 'active' | 'trialing' | 'canceled' | 'none';
   trialEndsAt?: string;
   subscriptionEndsAt?: string;

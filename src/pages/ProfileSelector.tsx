@@ -5,9 +5,10 @@ import { db } from '../lib/firebase';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
-import { Plus, User, Check, Lock } from 'lucide-react';
+import { Plus, User, Check, Lock, ShieldCheck } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { toast } from 'sonner';
+import CreditCardForm from '../components/CreditCardForm';
 
 const AVATARS = [
   'https://api.dicebear.com/7.x/avataaars/svg?seed=Felix',
@@ -23,6 +24,7 @@ export default function ProfileSelector() {
   const [selectedAvatar, setSelectedAvatar] = useState(AVATARS[0]);
   const [isAdding, setIsAdding] = useState(false);
   const [showSubscription, setShowSubscription] = useState(false);
+  const [showPayment, setShowPayment] = useState(false);
 
   const handleAddProfile = async () => {
     if (!user || !newProfileName) return;
@@ -41,9 +43,27 @@ export default function ProfileSelector() {
     }
   };
 
+  const handlePaymentSuccess = async (transactionId: string) => {
+    if (user) {
+      try {
+        const userDocRef = doc(db, 'users', user.uid);
+        await setDoc(userDocRef, {
+          subscriptionStatus: 'active',
+          subscriptionEndsAt: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(),
+          lastTransactionId: transactionId,
+        }, { merge: true });
+        toast.success('Subscription activated!');
+        setShowSubscription(false);
+        setShowPayment(false);
+      } catch (error: any) {
+        toast.error(error.message);
+      }
+    }
+  };
+
   const hasSubscription = userData?.subscriptionStatus === 'active' || userData?.subscriptionStatus === 'trialing';
 
-  if (!hasSubscription && !showSubscription) {
+  if (!hasSubscription && !showSubscription && !showPayment) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-[#0a0a0a] p-4">
         <motion.div 
@@ -57,18 +77,30 @@ export default function ProfileSelector() {
           <h2 className="text-3xl font-bold text-white mb-4">Unlock NeoFlix</h2>
           <p className="text-zinc-400 mb-8">
             Get unlimited access to thousands of movies and TV shows for just $1/month. 
-            Start your 7-day free trial today!
+            Start your premium experience today!
           </p>
           <div className="space-y-4">
             <Button 
               className="w-full bg-red-600 hover:bg-red-700 h-14 text-lg font-bold"
               onClick={() => setShowSubscription(true)}
             >
-              Start 7-Day Free Trial
+              Get Started
             </Button>
-            <p className="text-xs text-zinc-500">Only $1/month after trial. Cancel anytime.</p>
+            <p className="text-xs text-zinc-500">Only $1/month. Cancel anytime.</p>
           </div>
         </motion.div>
+      </div>
+    );
+  }
+
+  if (showPayment) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-[#0a0a0a] p-4">
+        <CreditCardForm 
+          amount={1} 
+          onSuccess={handlePaymentSuccess} 
+          onCancel={() => setShowPayment(false)} 
+        />
       </div>
     );
   }
@@ -82,44 +114,50 @@ export default function ProfileSelector() {
           className="max-w-lg w-full bg-zinc-900 border border-zinc-800 rounded-3xl overflow-hidden"
         >
           <div className="p-8">
-            <h2 className="text-2xl font-bold text-white mb-2">Complete Subscription</h2>
-            <p className="text-zinc-400 mb-8">Secure checkout for your NeoFlix account</p>
+            <h2 className="text-2xl font-bold text-white mb-2">Select Plan</h2>
+            <p className="text-zinc-400 mb-8">Secure checkout via NeoPay Gateway</p>
             
-            <div className="bg-zinc-800/50 rounded-2xl p-6 mb-8">
+            <div className="bg-zinc-800/50 rounded-2xl p-6 mb-8 border border-red-600/30">
               <div className="flex justify-between items-center mb-4">
-                <span className="text-white font-medium">Premium Plan</span>
-                <span className="text-red-600 font-bold">$1.00/mo</span>
+                <span className="text-white font-bold text-lg">Premium Monthly</span>
+                <span className="text-red-600 font-black text-2xl">$1.00</span>
               </div>
-              <div className="flex justify-between items-center text-sm text-zinc-400">
-                <span>Free Trial</span>
-                <span>7 Days</span>
-              </div>
-              <div className="border-t border-zinc-700 mt-4 pt-4 flex justify-between items-center">
-                <span className="text-white font-bold">Total Due Today</span>
-                <span className="text-white font-bold">$0.00</span>
-              </div>
+              <ul className="space-y-3 text-sm text-zinc-400">
+                <li className="flex items-center gap-2">
+                  <Check className="w-4 h-4 text-green-500" /> 4K Ultra HD Streaming
+                </li>
+                <li className="flex items-center gap-2">
+                  <Check className="w-4 h-4 text-green-500" /> Unlimited Movies & TV
+                </li>
+                <li className="flex items-center gap-2">
+                  <Check className="w-4 h-4 text-green-500" /> Watch on 4 Screens
+                </li>
+              </ul>
             </div>
 
-            <Button 
-              className="w-full bg-red-600 hover:bg-red-700 h-14 text-lg font-bold"
-              onClick={async () => {
-                if (user) {
-                  try {
-                    const userDocRef = doc(db, 'users', user.uid);
-                    await setDoc(userDocRef, {
-                      subscriptionStatus: 'trialing',
-                      trialEndsAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString(),
-                    }, { merge: true });
-                    toast.success('Subscription activated!');
-                    setShowSubscription(false);
-                  } catch (error: any) {
-                    toast.error(error.message);
-                  }
-                }
-              }}
-            >
-              Confirm & Start Trial
-            </Button>
+            <div className="space-y-4">
+              <Button 
+                className="w-full bg-red-600 hover:bg-red-700 h-14 text-lg font-bold rounded-2xl"
+                onClick={() => {
+                  setShowSubscription(false);
+                  setShowPayment(true);
+                }}
+              >
+                Continue to Payment
+              </Button>
+              <Button 
+                variant="ghost"
+                className="w-full text-zinc-500 hover:text-white"
+                onClick={() => setShowSubscription(false)}
+              >
+                Back
+              </Button>
+            </div>
+
+            <div className="mt-8 pt-6 border-t border-zinc-800 flex items-center justify-center gap-4 opacity-50">
+              <ShieldCheck className="w-5 h-5 text-zinc-400" />
+              <span className="text-[10px] uppercase font-bold tracking-widest text-zinc-400">Secure 256-bit SSL Encryption</span>
+            </div>
           </div>
         </motion.div>
       </div>
