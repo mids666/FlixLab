@@ -16,8 +16,9 @@ import {
   DialogTrigger 
 } from '@/components/ui/dialog';
 import { toast } from 'sonner';
-import { Camera, Trash2, CreditCard, User as UserIcon, AlertTriangle } from 'lucide-react';
+import { Camera, Trash2, User as UserIcon, AlertTriangle, ExternalLink } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
+import PatreonConnect from '../components/PatreonConnect';
 
 export default function Settings() {
   const { user, userData, currentProfile } = useAuth();
@@ -155,36 +156,15 @@ export default function Settings() {
         <Card className="bg-zinc-900 border-zinc-800 text-white">
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
-              <CreditCard className="w-5 h-5 text-red-600" />
-              Subscription & Payment
+              <ExternalLink className="w-5 h-5 text-red-600" />
+              Subscription & Membership
             </CardTitle>
             <CardDescription className="text-zinc-400">
-              Manage your subscription plan and billing
+              Manage your premium access via Patreon
             </CardDescription>
           </CardHeader>
-          <CardContent className="space-y-6">
-            <div className="p-6 bg-zinc-800/50 rounded-2xl border border-zinc-700">
-              <div className="flex justify-between items-start mb-4">
-                <div>
-                  <h3 className="text-xl font-bold">Premium Plan</h3>
-                  <p className="text-zinc-400 text-sm">Next billing date: May 11, 2026</p>
-                </div>
-                <span className="px-3 py-1 bg-red-600/20 text-red-600 text-xs font-bold rounded-full uppercase">
-                  {userData?.subscriptionStatus || 'Active'}
-                </span>
-              </div>
-              <div className="flex flex-wrap gap-4">
-                <Button variant="outline" className="border-zinc-700 hover:bg-zinc-800 text-white">
-                  Change Plan
-                </Button>
-                <Button variant="outline" className="border-zinc-700 hover:bg-zinc-800 text-white">
-                  Update Payment Method
-                </Button>
-                <Button variant="ghost" className="text-zinc-500 hover:text-red-500">
-                  Cancel Subscription
-                </Button>
-              </div>
-            </div>
+          <CardContent>
+            <PatreonConnect />
           </CardContent>
         </Card>
 
