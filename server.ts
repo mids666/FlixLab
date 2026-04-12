@@ -20,6 +20,8 @@ if (!admin.apps.length) {
     projectId: firebaseConfig.projectId,
   });
 }
+
+// Get the specific database instance
 const db = getFirestore(firebaseConfig.firestoreDatabaseId);
 
 async function startServer() {
@@ -44,15 +46,35 @@ async function startServer() {
   // 1. Get Patreon Auth URL
   app.get("/api/auth/patreon/url", (req, res) => {
     const { userId } = req.query;
+    
+    // Diagnostic info for the frontend
+    const diagnosticInfo = {
+      campaignUrl: process.env.PATREON_CAMPAIGN_URL || "https://www.patreon.com",
+      redirectUri: REDIRECT_URI,
+      configStatus: {
+        hasClientId: !!PATREON_CLIENT_ID,
+        hasClientSecret: !!PATREON_CLIENT_SECRET,
+        hasCampaignId: !!PATREON_CAMPAIGN_ID
+      }
+    };
+
+    if (userId === 'guest') {
+      return res.json(diagnosticInfo);
+    }
+
     if (!userId) return res.status(400).json({ error: "userId is required" });
 
     if (!PATREON_CLIENT_ID || !PATREON_CLIENT_SECRET || !PATREON_CAMPAIGN_ID) {
-      console.error("[Patreon OAuth] Missing environment variables:", { 
-        hasClientId: !!PATREON_CLIENT_ID, 
-        hasClientSecret: !!PATREON_CLIENT_SECRET, 
-        hasCampaignId: !!PATREON_CAMPAIGN_ID 
+      const missing = [];
+      if (!PATREON_CLIENT_ID) missing.push("PATREON_CLIENT_ID");
+      if (!PATREON_CLIENT_SECRET) missing.push("PATREON_CLIENT_SECRET");
+      if (!PATREON_CAMPAIGN_ID) missing.push("PATREON_CAMPAIGN_ID");
+      
+      console.error("[Patreon OAuth] Missing environment variables:", missing);
+      return res.status(500).json({ 
+        ...diagnosticInfo,
+        error: `Patreon configuration missing: ${missing.join(", ")}. Please add these to the app Secrets.` 
       });
-      return res.status(500).json({ error: "Patreon OAuth is not configured on the server." });
     }
 
     const params = new URLSearchParams({
@@ -66,7 +88,8 @@ async function startServer() {
     const authUrl = `https://www.patreon.com/oauth2/authorize?${params.toString()}`;
     res.json({ 
       url: authUrl,
-      campaignUrl: process.env.PATREON_CAMPAIGN_URL || "https://www.patreon.com"
+      campaignUrl: process.env.PATREON_CAMPAIGN_URL || "https://www.patreon.com",
+      redirectUri: REDIRECT_URI
     });
   });
 
@@ -123,19 +146,15 @@ async function startServer() {
 
       console.log(`[Patreon OAuth] Subscription status for user ${userId}: ${isPatron ? 'ACTIVE' : 'NONE'}`);
 
-      // Update Firestore
-      const userDocRef = db.collection("users").doc(userId as string);
-      await userDocRef.set({
-        subscriptionStatus: isPatron ? "active" : "none",
-        patreonConnected: true,
-        lastPatreonCheck: admin.firestore.FieldValue.serverTimestamp(),
-      }, { merge: true });
-
       res.send(`
         <html>
           <body>
             <script>
-              window.opener.postMessage({ type: 'PATREON_AUTH_SUCCESS', isPatron: ${isPatron} }, '*');
+              window.opener.postMessage({ 
+                type: 'PATREON_AUTH_SUCCESS', 
+                isPatron: ${isPatron},
+                userId: '${userId}'
+              }, '*');
               window.close();
             </script>
             <p>Authentication successful! This window will close automatically.</p>
