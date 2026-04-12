@@ -35,25 +35,32 @@ export const tmdbService = {
     });
     return data;
   },
-  search: async (query: string) => {
+  search: async (query: string, page: number = 1) => {
     const { data } = await tmdb.get('/search/multi', {
-      params: { query },
+      params: { query, page },
     });
-    return data.results;
+    return {
+      results: data.results,
+      total_pages: data.total_pages
+    };
   },
   getGenres: async (type: 'movie' | 'tv') => {
     const { data } = await tmdb.get(`/genre/${type}/list`);
     return data.genres;
   },
-  getDiscover: async (type: 'movie' | 'tv', genreId?: string, sortBy: string = 'popularity.desc') => {
+  getDiscover: async (type: 'movie' | 'tv', genreId?: string, sortBy: string = 'popularity.desc', page: number = 1) => {
     const { data } = await tmdb.get(`/discover/${type}`, {
       params: { 
         with_genres: genreId,
         sort_by: sortBy,
+        page,
         'vote_count.gte': sortBy === 'vote_average.desc' ? 100 : undefined // Filter for quality when sorting by top rated
       },
     });
-    return data.results;
+    return {
+      results: data.results,
+      total_pages: data.total_pages
+    };
   },
   getTVShowEpisodes: async (id: string, season: number) => {
     const { data } = await tmdb.get(`/tv/${id}/season/${season}`);
