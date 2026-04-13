@@ -126,7 +126,7 @@ export default function Home() {
               <div className="absolute inset-0 bg-gradient-to-r from-[#0a0a0a] via-[#0a0a0a]/20 to-transparent" />
             </div>
 
-            <div className="absolute bottom-0 left-0 w-full p-4 md:p-12 md:pb-20 space-y-6 max-w-4xl">
+            <div className="absolute bottom-0 left-0 w-full p-4 md:p-12 pb-24 md:pb-40 space-y-6 max-w-4xl">
               <motion.div
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
@@ -204,7 +204,7 @@ export default function Home() {
       </AnimatePresence>
 
       {/* Content Rows */}
-      <div className="space-y-8 -mt-20 md:-mt-32 relative z-10">
+      <div className="space-y-8 -mt-12 md:-mt-20 relative z-10">
         <MovieRow title="Trending Now" items={trending} onSelect={handleSelect} />
         <MovieRow title="Popular Movies" items={popularMovies} onSelect={handleSelect} />
         <MovieRow title="Popular TV Shows" items={popularTV} onSelect={handleSelect} />

@@ -14,7 +14,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Play, Star, Calendar, Clock, User, Server, ChevronLeft } from 'lucide-react';
+import { Play, Star, Calendar, Clock, User, Server, ChevronLeft, Download } from 'lucide-react';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { motion } from 'motion/react';
@@ -79,17 +79,22 @@ export default function Watch() {
 
     const recentlyWatchedRef = doc(db, 'users', user.uid, 'profiles', currentProfile.id, 'recentlyWatched', details.id.toString());
     
+    const data: any = {
+      tmdbId: details.id.toString(),
+      type: details.title ? 'movie' : 'tv',
+      title: details.title || details.name,
+      posterPath: details.poster_path,
+      voteAverage: details.vote_average,
+      watchedAt: new Date().toISOString(),
+    };
+
+    if (details.number_of_seasons) {
+      data.season = selectedSeason;
+      data.episode = selectedEpisode;
+    }
+    
     try {
-      await setDoc(recentlyWatchedRef, {
-        tmdbId: details.id.toString(),
-        type: details.title ? 'movie' : 'tv',
-        title: details.title || details.name,
-        posterPath: details.poster_path,
-        voteAverage: details.vote_average,
-        watchedAt: new Date().toISOString(),
-        season: details.number_of_seasons ? selectedSeason : undefined,
-        episode: details.number_of_seasons ? selectedEpisode : undefined,
-      });
+      await setDoc(recentlyWatchedRef, data);
     } catch (error) {
       console.error('Failed to add to recently watched:', error);
     }
@@ -174,6 +179,18 @@ export default function Watch() {
                     Alternative Server
                   </Button>
                 </div>
+
+                <div className="h-4 w-[1px] bg-zinc-800 mx-2 hidden md:block" />
+
+                <Button
+                  size="sm"
+                  variant="outline"
+                  className="h-8 px-4 rounded-full text-xs font-bold border-zinc-700 text-zinc-400 hover:text-white hover:border-white gap-2"
+                  onClick={() => window.open(embedUrl, '_blank')}
+                >
+                  <Download className="w-3 h-3" />
+                  Download
+                </Button>
               </div>
             </div>
           ) : (
