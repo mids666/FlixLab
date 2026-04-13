@@ -14,7 +14,13 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Play, Star, Calendar, Clock, User, Server, ChevronLeft, Download } from 'lucide-react';
+import { Play, Star, Calendar, Clock, User, Server, ChevronLeft, Download, Youtube } from 'lucide-react';
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { motion } from 'motion/react';
@@ -28,6 +34,7 @@ export default function Watch() {
   
   const [details, setDetails] = useState<any>(null);
   const [isPlaying, setIsPlaying] = useState(false);
+  const [showTrailer, setShowTrailer] = useState(false);
   const [selectedSeason, setSelectedSeason] = useState(1);
   const [selectedEpisode, setSelectedEpisode] = useState(1);
   const [episodes, setEpisodes] = useState<any[]>([]);
@@ -133,6 +140,7 @@ export default function Watch() {
   };
 
   const embedUrl = getEmbedUrl();
+  const trailer = details?.videos?.results?.find((v: any) => v.type === 'Trailer' && v.site === 'YouTube') || details?.videos?.results?.find((v: any) => v.site === 'YouTube');
 
   return (
     <div className="min-h-screen bg-zinc-950 pt-20">
@@ -202,7 +210,7 @@ export default function Watch() {
                 referrerPolicy="no-referrer"
               />
               <div className="absolute inset-0 bg-gradient-to-t from-zinc-950 via-transparent to-transparent" />
-              <div className="absolute inset-0 flex items-center justify-center">
+              <div className="absolute inset-0 flex flex-col items-center justify-center gap-6">
                 <Button 
                   size="lg" 
                   className="bg-red-600 hover:bg-red-700 text-white rounded-full w-20 h-20 flex items-center justify-center shadow-2xl hover:scale-110 transition-transform"
@@ -210,6 +218,17 @@ export default function Watch() {
                 >
                   <Play className="w-10 h-10 fill-current ml-1" />
                 </Button>
+                
+                {trailer && (
+                  <Button 
+                    variant="outline"
+                    className="bg-black/40 backdrop-blur-md border-zinc-700 hover:bg-black/60 text-white rounded-full px-6 h-12 font-bold gap-2 transition-all hover:border-red-600"
+                    onClick={() => setShowTrailer(true)}
+                  >
+                    <Youtube className="w-5 h-5 text-red-600" />
+                    Watch Trailer
+                  </Button>
+                )}
               </div>
             </div>
           )}
@@ -338,6 +357,24 @@ export default function Watch() {
                     </div>
                   </div>
                 </div>
+
+                {/* Trailer Section */}
+                {trailer && (
+                  <div className="pt-12 border-t border-zinc-900">
+                    <h3 className="text-xl font-bold mb-6 flex items-center gap-2">
+                      Official Trailer
+                      <span className="w-8 h-0.5 bg-red-600 rounded-full" />
+                    </h3>
+                    <div className="relative aspect-video w-full max-w-4xl rounded-2xl overflow-hidden shadow-2xl border border-zinc-800 bg-zinc-900">
+                      <iframe
+                        src={`https://www.youtube.com/embed/${trailer.key}`}
+                        className="absolute inset-0 w-full h-full"
+                        allowFullScreen
+                        frameBorder="0"
+                      />
+                    </div>
+                  </div>
+                )}
 
                 {details.number_of_seasons && (
                   <div className="space-y-6 pt-12 border-t border-zinc-900">
@@ -471,6 +508,29 @@ export default function Watch() {
           </div>
         </div>
       </div>
+
+      {/* Trailer Modal */}
+      <Dialog open={showTrailer} onOpenChange={setShowTrailer}>
+        <DialogContent className="bg-zinc-950 border-zinc-800 text-white max-w-4xl p-0 overflow-hidden">
+          <DialogHeader className="p-4 border-b border-zinc-800">
+            <DialogTitle className="flex items-center gap-2">
+              <Youtube className="w-5 h-5 text-red-600" />
+              {details.title || details.name} - Official Trailer
+            </DialogTitle>
+          </DialogHeader>
+          <div className="aspect-video w-full">
+            {trailer && (
+              <iframe
+                src={`https://www.youtube.com/embed/${trailer.key}?autoplay=1`}
+                className="w-full h-full"
+                allowFullScreen
+                allow="autoplay"
+                frameBorder="0"
+              />
+            )}
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
