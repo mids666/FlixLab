@@ -70,7 +70,7 @@ export default function MovieCard({ item, onSelect }: MovieCardProps) {
       return diffDays < 30 ? 'HD' : 'FHD';
     }
 
-    if (diffDays < 45) return 'CAM';
+    if (diffDays < 45) return null; // Don't show CAM
     if (diffDays < 120) return 'HD';
     return 'FHD';
   };
@@ -92,15 +92,15 @@ export default function MovieCard({ item, onSelect }: MovieCardProps) {
       />
 
       {/* Quality Badge */}
-      <div className="absolute top-2 left-2 z-20">
-        <span className={`px-2 py-0.5 rounded text-[10px] font-black uppercase tracking-wider shadow-lg ${
-          quality === 'CAM' ? 'bg-yellow-500 text-black' : 
-          quality === 'HD' ? 'bg-blue-500 text-white' : 
-          'bg-green-600 text-white'
-        }`}>
-          {quality}
-        </span>
-      </div>
+      {quality && (
+        <div className="absolute top-2 left-2 z-20">
+          <span className={`px-2 py-0.5 rounded text-[10px] font-black uppercase tracking-wider shadow-lg ${
+            quality === 'HD' ? 'bg-blue-500 text-white' : 'bg-green-600 text-white'
+          }`}>
+            {quality}
+          </span>
+        </div>
+      )}
       
       <AnimatePresence>
         {isHovered && (

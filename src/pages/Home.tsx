@@ -126,27 +126,30 @@ export default function Home() {
                   <span className="px-2 py-0.5 bg-zinc-800/80 rounded text-xs font-bold text-white uppercase tracking-wider">
                     {featured.media_type || 'trending'}
                   </span>
-                  <span className={`px-2 py-0.5 rounded text-[10px] font-black uppercase tracking-wider ${
-                    (() => {
-                      const releaseDate = featured.release_date || featured.first_air_date;
-                      if (!releaseDate) return 'bg-blue-500 text-white';
-                      const diffDays = Math.floor((new Date().getTime() - new Date(releaseDate).getTime()) / (1000 * 60 * 60 * 24));
-                      if (featured.media_type === 'tv') return diffDays < 30 ? 'bg-blue-500 text-white' : 'bg-green-600 text-white';
-                      if (diffDays < 45) return 'bg-yellow-500 text-black';
-                      if (diffDays < 120) return 'bg-blue-500 text-white';
-                      return 'bg-green-600 text-white';
-                    })()
-                  }`}>
-                    {(() => {
-                      const releaseDate = featured.release_date || featured.first_air_date;
-                      if (!releaseDate) return 'HD';
-                      const diffDays = Math.floor((new Date().getTime() - new Date(releaseDate).getTime()) / (1000 * 60 * 60 * 24));
-                      if (featured.media_type === 'tv') return diffDays < 30 ? 'HD' : 'FHD';
-                      if (diffDays < 45) return 'CAM';
-                      if (diffDays < 120) return 'HD';
-                      return 'FHD';
-                    })()}
-                  </span>
+                  {(() => {
+                    const releaseDate = featured.release_date || featured.first_air_date;
+                    if (!releaseDate) return <span className="px-2 py-0.5 rounded text-[10px] font-black uppercase tracking-wider bg-blue-500 text-white">HD</span>;
+                    
+                    const diffDays = Math.floor((new Date().getTime() - new Date(releaseDate).getTime()) / (1000 * 60 * 60 * 24));
+                    
+                    let quality: 'HD' | 'FHD' | null = null;
+                    if (featured.media_type === 'tv') {
+                      quality = diffDays < 30 ? 'HD' : 'FHD';
+                    } else {
+                      if (diffDays >= 45 && diffDays < 120) quality = 'HD';
+                      else if (diffDays >= 120) quality = 'FHD';
+                    }
+
+                    if (!quality) return null;
+
+                    return (
+                      <span className={`px-2 py-0.5 rounded text-[10px] font-black uppercase tracking-wider ${
+                        quality === 'HD' ? 'bg-blue-500 text-white' : 'bg-green-600 text-white'
+                      }`}>
+                        {quality}
+                      </span>
+                    );
+                  })()}
                 </div>
                 
                 <h1 className="text-5xl md:text-8xl font-black tracking-tighter text-white leading-none">
