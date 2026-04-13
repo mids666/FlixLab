@@ -31,6 +31,14 @@ service cloud.firestore {
              data.title is string && data.title.size() > 0;
     }
 
+    function isValidRecentlyWatchedItem(data) {
+      return data.keys().hasAll(['tmdbId', 'type', 'title', 'watchedAt']) &&
+             data.tmdbId is string &&
+             data.type in ['movie', 'tv'] &&
+             data.title is string && data.title.size() > 0 &&
+             data.watchedAt is string;
+    }
+
     // ===============================================================
     // Rules
     // ===============================================================
@@ -50,6 +58,13 @@ service cloud.firestore {
           allow read: if isOwner(userId);
           allow create: if isOwner(userId) && isValidWatchlistItem(request.resource.data);
           allow update: if isOwner(userId) && isValidWatchlistItem(request.resource.data);
+          allow delete: if isOwner(userId);
+        }
+
+        match /recentlyWatched/{itemId} {
+          allow read: if isOwner(userId);
+          allow create: if isOwner(userId) && isValidRecentlyWatchedItem(request.resource.data);
+          allow update: if isOwner(userId) && isValidRecentlyWatchedItem(request.resource.data);
           allow delete: if isOwner(userId);
         }
       }

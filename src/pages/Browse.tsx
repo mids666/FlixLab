@@ -3,8 +3,8 @@ import { useParams } from 'react-router-dom';
 import { tmdbService } from '../lib/tmdb';
 import { TMDBItem, Genre } from '../types';
 import MovieCard from '../components/MovieCard';
-import MoviePlayer from '../components/MoviePlayer';
 import { Skeleton } from '@/components/ui/skeleton';
+import { useNavigate } from 'react-router-dom';
 import {
   Select,
   SelectContent,
@@ -22,8 +22,7 @@ export default function Browse() {
   const [page, setPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
   const [loading, setLoading] = useState(true);
-  const [selectedItem, setSelectedItem] = useState<TMDBItem | null>(null);
-  const [isPlayerOpen, setIsPlayerOpen] = useState(false);
+  const navigate = useNavigate();
 
   useEffect(() => {
     setPage(1);
@@ -58,8 +57,8 @@ export default function Browse() {
   }, [type, selectedGenre, sortBy, page]);
 
   const handleSelect = (item: TMDBItem) => {
-    setSelectedItem(item);
-    setIsPlayerOpen(true);
+    const itemType = item.media_type || type || (item.title ? 'movie' : 'tv');
+    navigate(`/watch/${itemType}/${item.id}`);
   };
 
   return (
@@ -119,8 +118,8 @@ export default function Browse() {
       ) : (
         <>
           <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-6">
-            {items.map((item) => (
-              <MovieCard key={item.id} item={item} onSelect={handleSelect} />
+            {items.map((item, index) => (
+              <MovieCard key={`${item.id}-${index}`} item={item} onSelect={handleSelect} />
             ))}
           </div>
 
@@ -177,12 +176,6 @@ export default function Browse() {
           </div>
         </>
       )}
-
-      <MoviePlayer 
-        item={selectedItem} 
-        isOpen={isPlayerOpen} 
-        onClose={() => setIsPlayerOpen(false)} 
-      />
     </div>
   );
 }

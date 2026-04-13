@@ -23,6 +23,17 @@ export interface WatchlistItem {
   addedAt: string;
 }
 
+export interface RecentlyWatchedItem {
+  id: string;
+  tmdbId: string;
+  type: 'movie' | 'tv';
+  title: string;
+  posterPath: string;
+  watchedAt: string;
+  season?: number;
+  episode?: number;
+}
+
 export interface TMDBItem {
   id: number;
   title?: string;

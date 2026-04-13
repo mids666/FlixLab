@@ -11,7 +11,7 @@ export const tmdb = axios.create({
   },
 });
 
-export const getImageUrl = (path: string | null | undefined, size: 'w500' | 'original' | 'w185' = 'w500') => {
+export const getImageUrl = (path: string | null | undefined, size: 'w500' | 'original' | 'w185' | 'w300' | 'h632' | 'w342' = 'w500') => {
   if (!path) return null;
   return `${IMAGE_BASE_URL}/${size}${path}`;
 };
@@ -69,5 +69,11 @@ export const tmdbService = {
   getUpcoming: async () => {
     const { data } = await tmdb.get('/movie/upcoming');
     return data.results;
+  },
+  getPersonDetails: async (id: number) => {
+    const { data } = await tmdb.get(`/person/${id}`, {
+      params: { append_to_response: 'combined_credits,images' },
+    });
+    return data;
   },
 };

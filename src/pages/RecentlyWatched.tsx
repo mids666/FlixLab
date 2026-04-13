@@ -2,45 +2,41 @@ import { useState, useEffect } from 'react';
 import { useAuth } from '../hooks/useAuth';
 import { collection, onSnapshot, query, orderBy } from 'firebase/firestore';
 import { db } from '../lib/firebase';
-import { TMDBItem, WatchlistItem } from '../types';
+import { RecentlyWatchedItem } from '../types';
 import MovieCard from '../components/MovieCard';
-import { Bookmark, Play } from 'lucide-react';
+import { History, Play } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Link, useNavigate } from 'react-router-dom';
 
-export default function Watchlist() {
+export default function RecentlyWatched() {
   const { user, currentProfile } = useAuth();
-  const [items, setItems] = useState<WatchlistItem[]>([]);
+  const [items, setItems] = useState<RecentlyWatchedItem[]>([]);
   const [loading, setLoading] = useState(true);
   const navigate = useNavigate();
 
   useEffect(() => {
     if (!user || !currentProfile) return;
 
-    const watchlistRef = collection(db, 'users', user.uid, 'profiles', currentProfile.id, 'watchlist');
-    const q = query(watchlistRef, orderBy('addedAt', 'desc'));
+    const recentlyWatchedRef = collection(db, 'users', user.uid, 'profiles', currentProfile.id, 'recentlyWatched');
+    const q = query(recentlyWatchedRef, orderBy('watchedAt', 'desc'));
     
     const unsubscribe = onSnapshot(q, (snapshot) => {
-      const watchlistData = snapshot.docs.map(doc => ({
+      const recentlyWatchedData = snapshot.docs.map(doc => ({
         id: doc.id,
         ...doc.data()
-      })) as WatchlistItem[];
-      setItems(watchlistData);
+      })) as RecentlyWatchedItem[];
+      setItems(recentlyWatchedData);
       setLoading(false);
     });
 
     return () => unsubscribe();
   }, [user, currentProfile]);
 
-  const handleSelect = (item: WatchlistItem) => {
-    navigate(`/watch/${item.type}/${item.tmdbId}`);
-  };
-
   return (
     <div className="min-h-screen pt-24 px-4 md:px-12 pb-20">
       <div className="mb-12">
-        <h1 className="text-4xl md:text-5xl font-black tracking-tighter text-white">My Watchlist</h1>
-        <p className="text-zinc-500 mt-2">Movies and TV shows you've saved to watch later</p>
+        <h1 className="text-4xl md:text-5xl font-black tracking-tighter text-white">Recently Watched</h1>
+        <p className="text-zinc-500 mt-2">Pick up where you left off</p>
       </div>
 
       {loading ? (
@@ -65,22 +61,22 @@ export default function Watchlist() {
                 media_type: item.type,
                 genre_ids: [],
               }} 
-              onSelect={() => handleSelect(item)} 
+              onSelect={() => navigate(`/watch/${item.type}/${item.tmdbId}`)} 
             />
           ))}
         </div>
       ) : (
         <div className="flex flex-col items-center justify-center py-20 text-center">
           <div className="w-20 h-20 bg-zinc-900 rounded-full flex items-center justify-center mb-6">
-            <Bookmark className="w-10 h-10 text-zinc-700" />
+            <History className="w-10 h-10 text-zinc-700" />
           </div>
-          <h2 className="text-2xl font-bold text-white mb-2">Your watchlist is empty</h2>
+          <h2 className="text-2xl font-bold text-white mb-2">No history yet</h2>
           <p className="text-zinc-500 mb-8 max-w-md">
-            Add movies and TV shows to your watchlist to keep track of what you want to watch.
+            Movies and TV shows you watch will appear here so you can easily find them again.
           </p>
           <Link to="/">
             <Button className="bg-red-600 hover:bg-red-700 px-8 h-12 font-bold">
-              Browse Content
+              Start Watching
             </Button>
           </Link>
         </div>

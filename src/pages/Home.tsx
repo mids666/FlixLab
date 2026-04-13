@@ -3,7 +3,6 @@ import { useNavigate } from 'react-router-dom';
 import { tmdbService, getImageUrl } from '../lib/tmdb';
 import { TMDBItem } from '../types';
 import MovieRow from '../components/MovieRow';
-import MoviePlayer from '../components/MoviePlayer';
 import { Button } from '@/components/ui/button';
 import { Play, Info, Star, Lock } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
@@ -26,8 +25,6 @@ export default function Home() {
   const [topRated, setTopRated] = useState<TMDBItem[]>([]);
   const [featured, setFeatured] = useState<TMDBItem | null>(null);
   const [featuredIndex, setFeaturedIndex] = useState(0);
-  const [selectedItem, setSelectedItem] = useState<TMDBItem | null>(null);
-  const [isPlayerOpen, setIsPlayerOpen] = useState(false);
   const [showAuthModal, setShowAuthModal] = useState(false);
 
   useEffect(() => {
@@ -101,8 +98,8 @@ export default function Home() {
       setShowAuthModal(true);
       return;
     }
-    setSelectedItem(item);
-    setIsPlayerOpen(true);
+    const type = item.media_type || (item.title ? 'movie' : 'tv');
+    navigate(`/watch/${type}/${item.id}`);
   };
 
   return (
@@ -213,12 +210,6 @@ export default function Home() {
         <MovieRow title="Popular TV Shows" items={popularTV} onSelect={handleSelect} />
         <MovieRow title="Top Rated" items={topRated} onSelect={handleSelect} />
       </div>
-
-      <MoviePlayer 
-        item={selectedItem} 
-        isOpen={isPlayerOpen} 
-        onClose={() => setIsPlayerOpen(false)} 
-      />
 
       {/* Auth Modal */}
       <Dialog open={showAuthModal} onOpenChange={setShowAuthModal}>

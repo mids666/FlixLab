@@ -3,9 +3,9 @@ import { useSearchParams } from 'react-router-dom';
 import { tmdbService } from '../lib/tmdb';
 import { TMDBItem } from '../types';
 import MovieCard from '../components/MovieCard';
-import MoviePlayer from '../components/MoviePlayer';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Search as SearchIcon } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
 
 export default function Search() {
   const [searchParams] = useSearchParams();
@@ -14,8 +14,7 @@ export default function Search() {
   const [loading, setLoading] = useState(false);
   const [page, setPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
-  const [selectedItem, setSelectedItem] = useState<TMDBItem | null>(null);
-  const [isPlayerOpen, setIsPlayerOpen] = useState(false);
+  const navigate = useNavigate();
 
   useEffect(() => {
     setPage(1);
@@ -36,8 +35,8 @@ export default function Search() {
   }, [query, page]);
 
   const handleSelect = (item: TMDBItem) => {
-    setSelectedItem(item);
-    setIsPlayerOpen(true);
+    const type = item.media_type || (item.title ? 'movie' : 'tv');
+    navigate(`/watch/${type}/${item.id}`);
   };
 
   return (
@@ -57,8 +56,8 @@ export default function Search() {
       ) : results.length > 0 ? (
         <>
           <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-6">
-            {results.map((item) => (
-              <MovieCard key={item.id} item={item} onSelect={handleSelect} />
+            {results.map((item, index) => (
+              <MovieCard key={`${item.id}-${index}`} item={item} onSelect={handleSelect} />
             ))}
           </div>
 
@@ -127,12 +126,6 @@ export default function Search() {
           <p className="text-zinc-500">Try searching for something else</p>
         </div>
       ) : null}
-
-      <MoviePlayer 
-        item={selectedItem} 
-        isOpen={isPlayerOpen} 
-        onClose={() => setIsPlayerOpen(false)} 
-      />
     </div>
   );
 }

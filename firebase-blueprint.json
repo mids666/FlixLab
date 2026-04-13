@@ -35,6 +35,21 @@
         "addedAt": { "type": "string", "format": "date-time" }
       },
       "required": ["tmdbId", "type", "title"]
+    },
+    "RecentlyWatchedItem": {
+      "title": "Recently Watched Item",
+      "description": "A movie or TV show recently watched by a user",
+      "type": "object",
+      "properties": {
+        "tmdbId": { "type": "string" },
+        "type": { "type": "string", "enum": ["movie", "tv"] },
+        "title": { "type": "string" },
+        "posterPath": { "type": "string" },
+        "watchedAt": { "type": "string", "format": "date-time" },
+        "season": { "type": "number" },
+        "episode": { "type": "number" }
+      },
+      "required": ["tmdbId", "type", "title", "watchedAt"]
     }
   },
   "firestore": {
@@ -49,6 +64,10 @@
     "/users/{uid}/profiles/{profileId}/watchlist/{itemId}": {
       "schema": "WatchlistItem",
       "description": "Items in a profile's watchlist"
+    },
+    "/users/{uid}/profiles/{profileId}/recentlyWatched/{itemId}": {
+      "schema": "RecentlyWatchedItem",
+      "description": "Items recently watched by a profile"
     }
   }
 }

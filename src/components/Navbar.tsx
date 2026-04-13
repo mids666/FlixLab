@@ -29,7 +29,6 @@ import {
 import { motion, AnimatePresence } from 'motion/react';
 import { tmdbService, getImageUrl } from '../lib/tmdb';
 import { TMDBItem } from '../types';
-import MoviePlayer from './MoviePlayer';
 
 export default function Navbar() {
   const { user, currentProfile, profiles, setCurrentProfile } = useAuth();
@@ -38,8 +37,6 @@ export default function Navbar() {
   const [searchQuery, setSearchQuery] = useState('');
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [notifications, setNotifications] = useState<TMDBItem[]>([]);
-  const [selectedItem, setSelectedItem] = useState<TMDBItem | null>(null);
-  const [isPlayerOpen, setIsPlayerOpen] = useState(false);
   const navigate = useNavigate();
   const location = useLocation();
 
@@ -81,6 +78,7 @@ export default function Navbar() {
     { name: 'Movies', path: '/browse/movie' },
     { name: 'TV Shows', path: '/browse/tv' },
     { name: 'Watchlist', path: '/watchlist' },
+    { name: 'Recently Watched', path: '/recently-watched' },
   ];
 
   return (
@@ -163,8 +161,8 @@ export default function Navbar() {
                     key={movie.id} 
                     className="p-3 focus:bg-zinc-800 cursor-pointer border-b border-zinc-800/50 last:border-0"
                     onClick={() => {
-                      setSelectedItem(movie);
-                      setIsPlayerOpen(true);
+                      const type = movie.media_type || (movie.title ? 'movie' : 'tv');
+                      navigate(`/watch/${type}/${movie.id}`);
                     }}
                   >
                     <div className="flex gap-3">
@@ -286,12 +284,6 @@ export default function Navbar() {
           </motion.div>
         )}
       </AnimatePresence>
-
-      <MoviePlayer 
-        item={selectedItem} 
-        isOpen={isPlayerOpen} 
-        onClose={() => setIsPlayerOpen(false)} 
-      />
     </nav>
   );
 }

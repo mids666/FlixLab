@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { Play, Plus, Check, Info, Star } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
 import { TMDBItem } from '../types';
 import { getImageUrl } from '../lib/tmdb';
 import { Button } from '@/components/ui/button';
@@ -11,7 +12,7 @@ import { toast } from 'sonner';
 
 interface MovieCardProps {
   item: TMDBItem;
-  onSelect: (item: TMDBItem) => void;
+  onSelect?: (item: TMDBItem) => void;
   key?: any;
 }
 
@@ -19,6 +20,7 @@ export default function MovieCard({ item, onSelect }: MovieCardProps) {
   const [isHovered, setIsHovered] = useState(false);
   const [isInWatchlist, setIsInWatchlist] = useState(false);
   const { user, currentProfile } = useAuth();
+  const navigate = useNavigate();
 
   useEffect(() => {
     if (!user || !currentProfile) return;
@@ -32,6 +34,13 @@ export default function MovieCard({ item, onSelect }: MovieCardProps) {
 
     return () => unsubscribe();
   }, [user, currentProfile, item.id]);
+
+  const handleSelect = (e?: React.MouseEvent) => {
+    e?.stopPropagation();
+    const type = item.media_type || (item.title ? 'movie' : 'tv');
+    navigate(`/watch/${type}/${item.id}`);
+    if (onSelect) onSelect(item);
+  };
 
   const toggleWatchlist = async (e: React.MouseEvent) => {
     e.stopPropagation();
@@ -82,7 +91,7 @@ export default function MovieCard({ item, onSelect }: MovieCardProps) {
       className="relative flex-none w-[160px] md:w-[240px] aspect-[2/3] cursor-pointer group"
       onMouseEnter={() => setIsHovered(true)}
       onMouseLeave={() => setIsHovered(false)}
-      onClick={() => onSelect(item)}
+      onClick={() => handleSelect()}
     >
       <img 
         src={getImageUrl(item.poster_path) || undefined} 
@@ -128,10 +137,7 @@ export default function MovieCard({ item, onSelect }: MovieCardProps) {
               <Button 
                 size="icon" 
                 className="w-8 h-8 rounded-full bg-white text-black hover:bg-zinc-200"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  onSelect(item);
-                }}
+                onClick={handleSelect}
               >
                 <Play className="w-4 h-4 fill-current" />
               </Button>

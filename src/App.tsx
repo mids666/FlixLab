@@ -10,6 +10,9 @@ import Home from './pages/Home';
 import Browse from './pages/Browse';
 import Search from './pages/Search';
 import Watchlist from './pages/Watchlist';
+import RecentlyWatched from './pages/RecentlyWatched';
+import Watch from './pages/Watch';
+import Person from './pages/Person';
 import Settings from './pages/Settings';
 import Login from './pages/Login';
 import ProfileSelector from './pages/ProfileSelector';
@@ -39,6 +42,9 @@ function AppRoutes() {
         <Route path="/browse/:type" element={user ? <Browse /> : <Navigate to="/login" replace />} />
         <Route path="/search" element={<Search />} />
         <Route path="/watchlist" element={user ? <Watchlist /> : <Navigate to="/login" replace />} />
+        <Route path="/recently-watched" element={user ? <RecentlyWatched /> : <Navigate to="/login" replace />} />
+        <Route path="/watch/:type/:id" element={user ? <Watch /> : <Navigate to="/login" replace />} />
+        <Route path="/person/:id" element={user ? <Person /> : <Navigate to="/login" replace />} />
         <Route path="/settings" element={user ? <Settings /> : <Navigate to="/login" replace />} />
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>

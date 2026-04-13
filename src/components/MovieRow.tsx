@@ -38,8 +38,8 @@ export default function MovieRow({ title, items, onSelect }: MovieRowProps) {
           ref={rowRef}
           className="flex gap-4 overflow-x-auto scrollbar-hide scroll-smooth pb-4"
         >
-          {items.map((item) => (
-            <MovieCard key={item.id} item={item} onSelect={onSelect} />
+          {items.map((item, index) => (
+            <MovieCard key={`${item.id}-${index}`} item={item} onSelect={onSelect} />
           ))}
         </div>
 
