@@ -31,7 +31,7 @@ export default function Watch() {
   const [selectedSeason, setSelectedSeason] = useState(1);
   const [selectedEpisode, setSelectedEpisode] = useState(1);
   const [episodes, setEpisodes] = useState<any[]>([]);
-  const [selectedServer, setSelectedServer] = useState<ServerOption>('vidsrc');
+  const [selectedServer, setSelectedServer] = useState<ServerOption>('videasy');
 
   useEffect(() => {
     if (id && type) {
@@ -148,19 +148,19 @@ export default function Watch() {
                 <div className="flex gap-2">
                   <Button
                     size="sm"
-                    variant={selectedServer === 'vidsrc' ? 'default' : 'outline'}
-                    className={`h-8 px-4 rounded-full text-xs font-bold ${selectedServer === 'vidsrc' ? 'bg-red-600 hover:bg-red-700' : 'border-zinc-700 text-zinc-400'}`}
-                    onClick={() => setSelectedServer('vidsrc')}
-                  >
-                    VidSrc (Main)
-                  </Button>
-                  <Button
-                    size="sm"
                     variant={selectedServer === 'videasy' ? 'default' : 'outline'}
                     className={`h-8 px-4 rounded-full text-xs font-bold ${selectedServer === 'videasy' ? 'bg-red-600 hover:bg-red-700' : 'border-zinc-700 text-zinc-400'}`}
                     onClick={() => setSelectedServer('videasy')}
                   >
-                    VidEasy (Backup)
+                    Primary Server
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant={selectedServer === 'vidsrc' ? 'default' : 'outline'}
+                    className={`h-8 px-4 rounded-full text-xs font-bold ${selectedServer === 'vidsrc' ? 'bg-red-600 hover:bg-red-700' : 'border-zinc-700 text-zinc-400'}`}
+                    onClick={() => setSelectedServer('vidsrc')}
+                  >
+                    Secondary Server
                   </Button>
                   <Button
                     size="sm"
@@ -168,7 +168,7 @@ export default function Watch() {
                     className={`h-8 px-4 rounded-full text-xs font-bold ${selectedServer === 'vidlink' ? 'bg-red-600 hover:bg-red-700' : 'border-zinc-700 text-zinc-400'}`}
                     onClick={() => setSelectedServer('vidlink')}
                   >
-                    VidLink (Backup 2)
+                    Alternative Server
                   </Button>
                 </div>
               </div>
