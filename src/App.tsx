@@ -42,12 +42,12 @@ function AppRoutes() {
       <Routes>
         <Route path="/" element={<Home />} />
         <Route path="/login" element={user ? <Navigate to="/" replace /> : <Login />} />
-        <Route path="/browse/:type" element={user ? <Browse /> : <Navigate to="/login" replace />} />
+        <Route path="/browse/:type" element={<Browse />} />
         <Route path="/search" element={<Search />} />
         <Route path="/watchlist" element={user ? <Watchlist /> : <Navigate to="/login" replace />} />
         <Route path="/recently-watched" element={user ? <RecentlyWatched /> : <Navigate to="/login" replace />} />
-        <Route path="/watch/:type/:id" element={user ? <Watch /> : <Navigate to="/login" replace />} />
-        <Route path="/person/:id" element={user ? <Person /> : <Navigate to="/login" replace />} />
+        <Route path="/watch/:type/:id" element={<Watch />} />
+        <Route path="/person/:id" element={<Person />} />
         <Route path="/settings" element={user ? <Settings /> : <Navigate to="/login" replace />} />
         <Route path="/privacy" element={<PrivacyPolicy />} />
         <Route path="/terms" element={<TermsOfService />} />

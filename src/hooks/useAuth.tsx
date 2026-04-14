@@ -12,6 +12,8 @@ interface AuthContextType {
   setCurrentProfile: (profile: Profile | null) => void;
   loading: boolean;
   isAuthReady: boolean;
+  showAuthModal: boolean;
+  setShowAuthModal: (show: boolean) => void;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -23,6 +25,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [currentProfile, setCurrentProfile] = useState<Profile | null>(null);
   const [loading, setLoading] = useState(true);
   const [isAuthReady, setIsAuthReady] = useState(false);
+  const [showAuthModal, setShowAuthModal] = useState(false);
 
   useEffect(() => {
     const unsubscribeAuth = onAuthStateChanged(auth, async (firebaseUser) => {
@@ -109,7 +112,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       currentProfile, 
       setCurrentProfile: handleSetCurrentProfile, 
       loading, 
-      isAuthReady 
+      isAuthReady,
+      showAuthModal,
+      setShowAuthModal
     }}>
       {children}
     </AuthContext.Provider>

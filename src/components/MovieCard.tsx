@@ -19,7 +19,7 @@ interface MovieCardProps {
 export default function MovieCard({ item, onSelect }: MovieCardProps) {
   const [isHovered, setIsHovered] = useState(false);
   const [isInWatchlist, setIsInWatchlist] = useState(false);
-  const { user, currentProfile } = useAuth();
+  const { user, currentProfile, setShowAuthModal } = useAuth();
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -44,7 +44,10 @@ export default function MovieCard({ item, onSelect }: MovieCardProps) {
 
   const toggleWatchlist = async (e: React.MouseEvent) => {
     e.stopPropagation();
-    if (!user || !currentProfile) return;
+    if (!user || !currentProfile) {
+      setShowAuthModal(true);
+      return;
+    }
 
     const watchlistRef = doc(db, 'users', user.uid, 'profiles', currentProfile.id, 'watchlist', item.id.toString());
 

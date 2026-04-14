@@ -31,7 +31,7 @@ import { tmdbService, getImageUrl } from '../lib/tmdb';
 import { TMDBItem } from '../types';
 
 export default function Navbar() {
-  const { user, currentProfile, profiles, setCurrentProfile } = useAuth();
+  const { user, currentProfile, profiles, setCurrentProfile, setShowAuthModal } = useAuth();
   const [isScrolled, setIsScrolled] = useState(false);
   const [isSearchOpen, setIsSearchOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
@@ -77,8 +77,8 @@ export default function Navbar() {
     { name: 'Home', path: '/' },
     { name: 'Movies', path: '/browse/movie' },
     { name: 'TV Shows', path: '/browse/tv' },
-    { name: 'Watchlist', path: '/watchlist' },
-    { name: 'Recently Watched', path: '/recently-watched' },
+    { name: 'Watchlist', path: '/watchlist', protected: true },
+    { name: 'Recently Watched', path: '/recently-watched', protected: true },
   ];
 
   return (
@@ -95,15 +95,21 @@ export default function Navbar() {
         {/* Desktop Nav */}
         <div className="hidden md:flex items-center gap-6">
           {navLinks.map((link) => (
-            <Link
+            <button
               key={link.name}
-              to={link.path}
+              onClick={() => {
+                if (link.protected && !user) {
+                  setShowAuthModal(true);
+                } else {
+                  navigate(link.path);
+                }
+              }}
               className={`text-sm font-medium transition-colors hover:text-red-500 ${
                 location.pathname === link.path ? 'text-white' : 'text-zinc-400'
               }`}
             >
               {link.name}
-            </Link>
+            </button>
           ))}
         </div>
       </div>
@@ -270,16 +276,22 @@ export default function Navbar() {
             className="absolute top-full left-0 w-full bg-[#0a0a0a] border-b border-zinc-800 p-6 flex flex-col gap-4 md:hidden"
           >
             {navLinks.map((link) => (
-              <Link
+              <button
                 key={link.name}
-                to={link.path}
-                onClick={() => setIsMobileMenuOpen(false)}
-                className={`text-lg font-medium ${
+                onClick={() => {
+                  setIsMobileMenuOpen(false);
+                  if (link.protected && !user) {
+                    setShowAuthModal(true);
+                  } else {
+                    navigate(link.path);
+                  }
+                }}
+                className={`text-lg font-medium text-left ${
                   location.pathname === link.path ? 'text-red-600' : 'text-zinc-400'
                 }`}
               >
                 {link.name}
-              </Link>
+              </button>
             ))}
           </motion.div>
         )}

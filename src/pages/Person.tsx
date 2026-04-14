@@ -4,10 +4,12 @@ import { tmdbService, getImageUrl } from '../lib/tmdb';
 import { Button } from '@/components/ui/button';
 import { ChevronLeft, Play, User, ExternalLink, Calendar, MapPin, TrendingUp } from 'lucide-react';
 import { motion } from 'motion/react';
+import { useAuth } from '../hooks/useAuth';
 
 export default function Person() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
+  const { user, setShowAuthModal } = useAuth();
   const [person, setPerson] = useState<any>(null);
   const [loading, setLoading] = useState(true);
 
@@ -19,6 +21,12 @@ export default function Person() {
         .finally(() => setLoading(false));
     }
   }, [id]);
+
+  useEffect(() => {
+    if (!loading && person && !user) {
+      setShowAuthModal(true);
+    }
+  }, [loading, person, user, setShowAuthModal]);
 
   if (loading) {
     return (
@@ -35,7 +43,7 @@ export default function Person() {
     .slice(0, 24) || [];
 
   return (
-    <div className="min-h-screen bg-[#0a0a0a] text-white pb-20 pt-20">
+    <div className={`min-h-screen bg-[#0a0a0a] text-white pb-20 pt-20 transition-all duration-700 ${!user ? 'blur-xl pointer-events-none select-none' : ''}`}>
       {/* Hero Section */}
       <div className="relative overflow-hidden px-6 md:px-12 py-12 md:py-20">
         {/* Background */}

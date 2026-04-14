@@ -1,11 +1,13 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
 import Navbar from './Navbar';
+import AuthModal from './AuthModal';
 
 export default function Layout({ children }: { children: React.ReactNode }) {
   return (
     <div className="min-h-screen bg-[#0a0a0a] text-white selection:bg-red-600 selection:text-white">
       <Navbar />
+      <AuthModal />
       <main className="pt-0">
         {children}
       </main>

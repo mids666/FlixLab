@@ -17,7 +17,7 @@ import {
 } from '@/components/ui/dialog';
 
 export default function Home() {
-  const { user } = useAuth();
+  const { user, setShowAuthModal } = useAuth();
   const navigate = useNavigate();
   const [trending, setTrending] = useState<TMDBItem[]>([]);
   const [popularMovies, setPopularMovies] = useState<TMDBItem[]>([]);
@@ -25,7 +25,6 @@ export default function Home() {
   const [topRated, setTopRated] = useState<TMDBItem[]>([]);
   const [featured, setFeatured] = useState<TMDBItem | null>(null);
   const [featuredIndex, setFeaturedIndex] = useState(0);
-  const [showAuthModal, setShowAuthModal] = useState(false);
 
   useEffect(() => {
     const fetchData = async () => {
@@ -86,18 +85,18 @@ export default function Home() {
 
   useEffect(() => {
     if (!user) {
-      const timer = setTimeout(() => {
-        setShowAuthModal(true);
-      }, 3000);
-      return () => clearTimeout(timer);
+      const hasShownModal = sessionStorage.getItem('flixlab_auth_modal_shown');
+      if (!hasShownModal) {
+        const timer = setTimeout(() => {
+          setShowAuthModal(true);
+          sessionStorage.setItem('flixlab_auth_modal_shown', 'true');
+        }, 3000);
+        return () => clearTimeout(timer);
+      }
     }
   }, [user]);
 
   const handleSelect = (item: TMDBItem) => {
-    if (!user) {
-      setShowAuthModal(true);
-      return;
-    }
     const type = item.media_type || (item.title ? 'movie' : 'tv');
     navigate(`/watch/${type}/${item.id}`);
   };
@@ -210,39 +209,6 @@ export default function Home() {
         <MovieRow title="Popular TV Shows" items={popularTV} onSelect={handleSelect} />
         <MovieRow title="Top Rated" items={topRated} onSelect={handleSelect} />
       </div>
-
-      {/* Auth Modal */}
-      <Dialog open={showAuthModal} onOpenChange={setShowAuthModal}>
-        <DialogContent className="bg-zinc-900 border-zinc-800 text-white max-w-md">
-          <DialogHeader className="items-center text-center space-y-4">
-            <div className="w-16 h-16 bg-red-600/20 rounded-full flex items-center justify-center">
-              <Lock className="w-8 h-8 text-red-600" />
-            </div>
-            <DialogTitle className="text-3xl font-black tracking-tighter">JOIN FLIXLAB</DialogTitle>
-            <DialogDescription className="text-zinc-400 text-lg">
-              Sign in to watch thousands of movies and TV shows, and sync your progress across all devices.
-            </DialogDescription>
-          </DialogHeader>
-          <div className="py-6 space-y-4">
-            <Button 
-              className="w-full bg-red-600 hover:bg-red-700 h-14 text-lg font-bold rounded-2xl"
-              onClick={() => navigate('/login')}
-            >
-              Sign In / Sign Up
-            </Button>
-            <Button 
-              variant="ghost" 
-              className="w-full text-zinc-500 hover:text-white"
-              onClick={() => setShowAuthModal(false)}
-            >
-              Maybe Later
-            </Button>
-          </div>
-          <div className="text-center text-[10px] text-zinc-600 uppercase font-bold tracking-widest">
-            Unlimited Entertainment Awaits
-          </div>
-        </DialogContent>
-      </Dialog>
     </div>
   );
 }
