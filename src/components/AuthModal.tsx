@@ -18,7 +18,7 @@ export default function AuthModal() {
     'Personal Watchlist to save your favorites',
     'Recently Watched history to resume playback',
     'Sync progress across all your devices',
-    'Exclusive HD/FHD content access'
+    'Exclusive FHD content access'
   ];
 
   return (

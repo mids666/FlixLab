@@ -145,24 +145,21 @@ export default function Home() {
                   </span>
                   {(() => {
                     const releaseDate = featured.release_date || featured.first_air_date;
-                    if (!releaseDate) return <span className="px-2 py-0.5 rounded text-[10px] font-black uppercase tracking-wider bg-blue-500 text-white">HD</span>;
+                    if (!releaseDate) return <span className="px-2 py-0.5 rounded text-[10px] font-black uppercase tracking-wider bg-green-600 text-white">FHD</span>;
                     
                     const diffDays = Math.floor((new Date().getTime() - new Date(releaseDate).getTime()) / (1000 * 60 * 60 * 24));
                     
-                    let quality: 'HD' | 'FHD' | null = null;
+                    let quality: 'FHD' | null = null;
                     if (featured.media_type === 'tv') {
-                      quality = diffDays < 30 ? 'HD' : 'FHD';
+                      quality = 'FHD';
                     } else {
-                      if (diffDays >= 45 && diffDays < 120) quality = 'HD';
-                      else if (diffDays >= 120) quality = 'FHD';
+                      if (diffDays >= 45) quality = 'FHD';
                     }
 
                     if (!quality) return null;
 
                     return (
-                      <span className={`px-2 py-0.5 rounded text-[10px] font-black uppercase tracking-wider ${
-                        quality === 'HD' ? 'bg-blue-500 text-white' : 'bg-green-600 text-white'
-                      }`}>
+                      <span className="px-2 py-0.5 rounded text-[10px] font-black uppercase tracking-wider bg-green-600 text-white">
                         {quality}
                       </span>
                     );

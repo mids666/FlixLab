@@ -72,18 +72,17 @@ export default function MovieCard({ item, onSelect }: MovieCardProps) {
 
   const getQuality = () => {
     const releaseDate = item.release_date || item.first_air_date;
-    if (!releaseDate) return 'HD';
+    if (!releaseDate) return 'FHD';
 
     const date = new Date(releaseDate);
     const now = new Date();
     const diffDays = Math.floor((now.getTime() - date.getTime()) / (1000 * 60 * 60 * 24));
 
     if (item.media_type === 'tv' || !item.title) {
-      return diffDays < 30 ? 'HD' : 'FHD';
+      return 'FHD';
     }
 
     if (diffDays < 45) return null; // Don't show CAM
-    if (diffDays < 120) return 'HD';
     return 'FHD';
   };
 
@@ -106,9 +105,7 @@ export default function MovieCard({ item, onSelect }: MovieCardProps) {
       {/* Quality Badge */}
       {quality && (
         <div className="absolute top-2 left-2 z-20">
-          <span className={`px-2 py-0.5 rounded text-[10px] font-black uppercase tracking-wider shadow-lg ${
-            quality === 'HD' ? 'bg-blue-500 text-white' : 'bg-green-600 text-white'
-          }`}>
+          <span className="px-2 py-0.5 rounded text-[10px] font-black uppercase tracking-wider shadow-lg bg-green-600 text-white">
             {quality}
           </span>
         </div>
