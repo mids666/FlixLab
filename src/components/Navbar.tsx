@@ -89,7 +89,7 @@ export default function Navbar() {
     >
       <div className="flex items-center gap-8">
         <Link to="/" className="text-3xl font-black tracking-tighter text-red-600">
-          NEOFLIX
+          FLIXLAB
         </Link>
         
         {/* Desktop Nav */}

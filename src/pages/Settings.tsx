@@ -175,7 +175,7 @@ export default function Settings() {
             <div className="flex justify-between items-center p-4 bg-zinc-800/50 rounded-xl">
               <div>
                 <div className="text-zinc-500 text-xs uppercase font-bold mb-1">Subscription Plan</div>
-                <div className="text-white">NeoFlix Free Premium</div>
+                <div className="text-white">FlixLab Free Premium</div>
               </div>
               <div className="px-3 py-1 bg-red-600 text-white text-[10px] font-black rounded-full uppercase tracking-widest">
                 Active

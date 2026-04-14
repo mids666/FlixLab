@@ -8,15 +8,15 @@ export default function HelpCenter() {
   const [activeFaq, setActiveFaq] = useState<number | null>(null);
 
   const categories = [
-    { icon: Play, title: 'Getting Started', desc: 'Learn how to use Neoflix and set up your account.' },
+    { icon: Play, title: 'Getting Started', desc: 'Learn how to use FlixLab and set up your account.' },
     { icon: User, title: 'Account & Profile', desc: 'Manage your profiles, settings, and preferences.' },
     { icon: Shield, title: 'Privacy & Security', desc: 'How we keep your data safe and secure.' },
   ];
 
   const faqs = [
     { 
-      q: 'Is Neoflix really free?', 
-      a: 'Yes! Neoflix is a free platform. We do not require any credit card information or subscription fees to enjoy our library of movies and TV shows.' 
+      q: 'Is FlixLab really free?', 
+      a: 'Yes! FlixLab is a free platform. We do not require any credit card information or subscription fees to enjoy our library of movies and TV shows.' 
     },
     { 
       q: 'How do I change my profile name?', 
@@ -24,7 +24,7 @@ export default function HelpCenter() {
     },
     { 
       q: 'Can I watch on multiple devices?', 
-      a: 'Absolutely. Since Neoflix is web-based, you can log in and watch on any device with a modern web browser, including smartphones, tablets, and smart TVs.' 
+      a: 'Absolutely. Since FlixLab is web-based, you can log in and watch on any device with a modern web browser, including smartphones, tablets, and smart TVs.' 
     },
     { 
       q: 'How do I add movies to my Watchlist?', 

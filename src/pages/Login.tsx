@@ -111,7 +111,7 @@ export default function Login() {
         className="w-full max-w-md z-10"
       >
         <div className="text-center mb-8">
-          <h1 className="text-5xl font-black tracking-tighter text-red-600 mb-2">NEOFLIX</h1>
+          <h1 className="text-5xl font-black tracking-tighter text-red-600 mb-2">FLIXLAB</h1>
           <p className="text-gray-400">Your gateway to infinite entertainment</p>
         </div>
 

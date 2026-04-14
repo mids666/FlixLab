@@ -12,7 +12,7 @@ export default function Layout({ children }: { children: React.ReactNode }) {
       <footer className="py-12 px-4 md:px-12 border-t border-zinc-900 mt-20">
         <div className="max-w-7xl mx-auto grid grid-cols-2 md:grid-cols-4 gap-8">
           <div className="space-y-4">
-            <h3 className="text-red-600 font-black tracking-tighter text-2xl">NEOFLIX</h3>
+            <h3 className="text-red-600 font-black tracking-tighter text-2xl">FLIXLAB</h3>
             <p className="text-zinc-500 text-sm">
               The ultimate streaming experience. Unlimited movies, TV shows, and more.
             </p>
@@ -43,7 +43,7 @@ export default function Layout({ children }: { children: React.ReactNode }) {
           </div>
         </div>
         <div className="max-w-7xl mx-auto mt-12 pt-8 border-t border-zinc-900 text-center text-zinc-600 text-xs">
-          © {new Date().getFullYear()} NeoFlix. All rights reserved.
+          © {new Date().getFullYear()} FlixLab. All rights reserved.
         </div>
       </footer>
     </div>
