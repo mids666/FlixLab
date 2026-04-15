@@ -189,7 +189,7 @@ export default function Watch() {
   return (
     <div className="min-h-screen bg-zinc-950 pt-20">
       <div className="relative w-full flex flex-col">
-        <div className="relative w-full h-[60vh] md:h-[80vh] bg-black">
+        <div className="relative w-full h-[70vh] md:h-[90vh] bg-black">
           {isPlaying ? (
             <div className="w-full h-full flex flex-col">
               <iframe
@@ -250,60 +250,67 @@ export default function Watch() {
               <img 
                 src={getImageUrl(details.backdrop_path, 'original') || undefined} 
                 alt={details.title || details.name}
-                className="w-full h-full object-cover opacity-60"
+                className="w-full h-full object-cover opacity-50"
                 referrerPolicy="no-referrer"
               />
+              <div className="absolute inset-0 bg-gradient-to-r from-zinc-950 via-zinc-950/40 to-transparent" />
               <div className="absolute inset-0 bg-gradient-to-t from-zinc-950 via-transparent to-transparent" />
-              <div className="absolute inset-0 flex flex-col items-center justify-center gap-6">
-                <Button 
-                  size="lg" 
-                  className="bg-red-600 hover:bg-red-700 text-white rounded-full w-20 h-20 flex items-center justify-center shadow-2xl hover:scale-110 transition-transform"
-                  onClick={handlePlay}
-                >
-                  <Play className="w-10 h-10 fill-current ml-1" />
-                </Button>
-                
-                {trailer && (
-                  <Button 
-                    variant="outline"
-                    className="bg-black/40 backdrop-blur-md border-zinc-700 hover:bg-black/60 text-white rounded-full px-6 h-12 font-bold gap-2 transition-all hover:border-red-600"
-                    onClick={() => setShowTrailer(true)}
-                  >
-                    <Youtube className="w-5 h-5 text-red-600" />
-                    Watch Trailer
-                  </Button>
-                )}
-              </div>
-            </div>
-          )}
-        </div>
-
-        <div className="max-w-7xl mx-auto w-full px-4 md:px-12 py-12">
-          <div className="space-y-16">
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-12">
-              <div className="lg:col-span-2 space-y-12">
-                <div className="space-y-6">
+              
+              <div className="absolute inset-0 flex flex-col justify-end pb-12 md:pb-24 px-4 md:px-12 max-w-7xl mx-auto">
+                <div className="max-w-3xl space-y-6">
                   <div className="flex items-center gap-4 text-sm font-bold">
                     <div className="flex items-center gap-1 text-yellow-500">
                       <Star className="w-4 h-4 fill-current" />
                       <span>{details.vote_average.toFixed(1)}</span>
                     </div>
-                    <span className="text-zinc-500">
+                    <span className="text-zinc-300">
                       {new Date(details.release_date || details.first_air_date).getFullYear()}
                     </span>
                     {details.runtime && (
-                      <span className="text-zinc-500 flex items-center gap-1">
+                      <span className="text-zinc-300 flex items-center gap-1">
                         <Clock className="w-4 h-4" />
                         {Math.floor(details.runtime / 60)}h {details.runtime % 60}m
                       </span>
                     )}
-                    <span className="px-2 py-0.5 bg-zinc-800 rounded text-[10px] uppercase tracking-widest">
+                    <span className="px-2 py-0.5 bg-zinc-800 rounded text-[10px] uppercase tracking-widest text-zinc-300">
                       {type === 'movie' ? 'Movie' : 'TV Show'}
                     </span>
+                  </div>
+
+                  <h1 className="text-4xl md:text-6xl font-black tracking-tighter text-white leading-[0.85]">
+                    {details.title || details.name}
+                  </h1>
+
+                  <p className="text-base text-zinc-300 leading-relaxed line-clamp-3 md:line-clamp-none max-w-2xl">
+                    {details.overview}
+                  </p>
+
+                  <div className="flex flex-wrap items-center gap-4 pt-4">
+                    <Button 
+                      size="lg" 
+                      className="bg-white text-black hover:bg-zinc-200 px-8 h-14 text-lg font-bold rounded-md gap-3"
+                      onClick={handlePlay}
+                    >
+                      <Play className="w-6 h-6 fill-current" />
+                      Play
+                    </Button>
+                    
+                    {trailer && (
+                      <Button 
+                        size="lg"
+                        variant="outline"
+                        className="bg-zinc-500/30 backdrop-blur-md border-transparent hover:bg-zinc-500/50 text-white px-8 h-14 text-lg font-bold rounded-md gap-3 transition-all"
+                        onClick={() => setShowTrailer(true)}
+                      >
+                        <Youtube className="w-6 h-6 text-red-600" />
+                        Trailer
+                      </Button>
+                    )}
+
                     <motion.button
-                      initial={{ width: 32 }}
+                      initial={{ width: 56 }}
                       animate={{ 
-                        width: details && !isInWatchlist ? [32, 180, 180, 32] : 32 
+                        width: details && !isInWatchlist ? [56, 260, 260, 56] : 56 
                       }}
                       transition={{ 
                         duration: 3, 
@@ -311,15 +318,15 @@ export default function Watch() {
                         delay: 1,
                         ease: "easeInOut"
                       }}
-                      className={`h-8 flex items-center justify-center gap-2 rounded-full border transition-all overflow-hidden group ${
+                      className={`h-14 flex items-center justify-center gap-2 rounded-md border transition-all overflow-hidden group backdrop-blur-md ${
                         isInWatchlist 
-                          ? 'bg-red-600 border-red-600 text-white w-8' 
-                          : 'border-zinc-700 text-zinc-400 hover:border-white px-2'
+                          ? 'bg-red-600 border-red-600 text-white w-14' 
+                          : 'bg-zinc-500/30 border-transparent text-white hover:bg-zinc-500/50 px-4'
                       }`}
                       onClick={toggleWatchlist}
                     >
-                      <div className="flex-none flex items-center justify-center w-4 h-4">
-                        {isInWatchlist ? <Check className="w-4 h-4" /> : <Plus className="w-4 h-4" />}
+                      <div className="flex-none flex items-center justify-center w-6 h-6">
+                        {isInWatchlist ? <Check className="w-6 h-6" /> : <Plus className="w-6 h-6" />}
                       </div>
                       {!isInWatchlist && (
                         <motion.span
@@ -334,16 +341,100 @@ export default function Watch() {
                             delay: 1,
                             ease: "easeInOut"
                           }}
-                          className="text-[10px] font-black uppercase tracking-widest whitespace-nowrap overflow-hidden"
+                          className="text-sm font-bold uppercase tracking-widest whitespace-nowrap overflow-hidden"
                         >
                           Add to Watchlist
                         </motion.span>
                       )}
                     </motion.button>
                   </div>
-                  <h1 className="text-4xl md:text-6xl font-black tracking-tighter text-white">
-                    {details.title || details.name}
-                  </h1>
+                </div>
+              </div>
+            </div>
+          )}
+        </div>
+
+        <div className="max-w-7xl mx-auto w-full px-4 md:px-12 py-12">
+          <div className="space-y-16">
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-12">
+              <div className="lg:col-span-2 space-y-12">
+                {isPlaying && (
+                  <div className="space-y-6">
+                    <div className="flex items-center gap-4 text-sm font-bold">
+                      <div className="flex items-center gap-1 text-yellow-500">
+                        <Star className="w-4 h-4 fill-current" />
+                        <span>{details.vote_average.toFixed(1)}</span>
+                      </div>
+                      <span className="text-zinc-500">
+                        {new Date(details.release_date || details.first_air_date).getFullYear()}
+                      </span>
+                      {details.runtime && (
+                        <span className="text-zinc-500 flex items-center gap-1">
+                          <Clock className="w-4 h-4" />
+                          {Math.floor(details.runtime / 60)}h {details.runtime % 60}m
+                        </span>
+                      )}
+                      <span className="px-2 py-0.5 bg-zinc-800 rounded text-[10px] uppercase tracking-widest">
+                        {type === 'movie' ? 'Movie' : 'TV Show'}
+                      </span>
+                      <motion.button
+                        initial={{ width: 32 }}
+                        animate={{ 
+                          width: details && !isInWatchlist ? [32, 220, 220, 32] : 32 
+                        }}
+                        transition={{ 
+                          duration: 3, 
+                          times: [0, 0.15, 0.85, 1],
+                          delay: 1,
+                          ease: "easeInOut"
+                        }}
+                        className={`h-8 flex items-center justify-center gap-2 rounded-full border transition-all overflow-hidden group ${
+                          isInWatchlist 
+                            ? 'bg-red-600 border-red-600 text-white w-8' 
+                            : 'border-zinc-700 text-zinc-400 hover:border-white px-2'
+                        }`}
+                        onClick={toggleWatchlist}
+                      >
+                        <div className="flex-none flex items-center justify-center w-4 h-4">
+                          {isInWatchlist ? <Check className="w-4 h-4" /> : <Plus className="w-4 h-4" />}
+                        </div>
+                        {!isInWatchlist && (
+                          <motion.span
+                            initial={{ opacity: 0, width: 0 }}
+                            animate={{ 
+                              opacity: [0, 1, 1, 0],
+                              width: [0, "auto", "auto", 0]
+                            }}
+                            transition={{ 
+                              duration: 3, 
+                              times: [0, 0.15, 0.85, 1],
+                              delay: 1,
+                              ease: "easeInOut"
+                            }}
+                            className="text-[10px] font-black uppercase tracking-widest whitespace-nowrap overflow-hidden"
+                          >
+                            Add to Watchlist
+                          </motion.span>
+                        )}
+                      </motion.button>
+                    </div>
+                    <h1 className="text-4xl md:text-6xl font-black tracking-tighter text-white">
+                      {details.title || details.name}
+                    </h1>
+                    <div className="flex flex-wrap gap-2">
+                      {details.genres?.map((genre: any) => (
+                        <span key={genre.id} className="text-xs text-zinc-400 border border-zinc-800 px-3 py-1 rounded-full">
+                          {genre.name}
+                        </span>
+                      ))}
+                    </div>
+                    <p className="text-lg text-zinc-400 leading-relaxed max-w-4xl">
+                      {details.overview}
+                    </p>
+                  </div>
+                )}
+                
+                {!isPlaying && (
                   <div className="flex flex-wrap gap-2">
                     {details.genres?.map((genre: any) => (
                       <span key={genre.id} className="text-xs text-zinc-400 border border-zinc-800 px-3 py-1 rounded-full">
@@ -351,10 +442,7 @@ export default function Watch() {
                       </span>
                     ))}
                   </div>
-                  <p className="text-lg text-zinc-400 leading-relaxed max-w-4xl">
-                    {details.overview}
-                  </p>
-                </div>
+                )}
 
                 {/* Cast Section - Now under overview */}
                 <div className="space-y-6">
@@ -442,24 +530,7 @@ export default function Watch() {
                   </div>
                 </div>
 
-                {/* Trailer Section */}
-                {trailer && (
-                  <div className="pt-12 border-t border-zinc-900">
-                    <h3 className="text-xl font-bold mb-6 flex items-center gap-2">
-                      Official Trailer
-                      <span className="w-8 h-0.5 bg-red-600 rounded-full" />
-                    </h3>
-                    <div className="relative aspect-video w-full max-w-4xl rounded-2xl overflow-hidden shadow-2xl border border-zinc-800 bg-zinc-900">
-                      <iframe
-                        src={`https://www.youtube.com/embed/${trailer.key}`}
-                        className="absolute inset-0 w-full h-full"
-                        allowFullScreen
-                        frameBorder="0"
-                      />
-                    </div>
-                  </div>
-                )}
-
+                {/* Episodes Section - Priority for TV Shows */}
                 {details.number_of_seasons && (
                   <div className="space-y-6 pt-12 border-t border-zinc-900">
                     <div className="flex items-center justify-between">
@@ -542,6 +613,24 @@ export default function Watch() {
                           </div>
                         </button>
                       ))}
+                    </div>
+                  </div>
+                )}
+
+                {/* Trailer Section - Only for Movies or below episodes for TV */}
+                {trailer && type === 'movie' && (
+                  <div className="pt-12 border-t border-zinc-900">
+                    <h3 className="text-xl font-bold mb-6 flex items-center gap-2">
+                      Official Trailer
+                      <span className="w-8 h-0.5 bg-red-600 rounded-full" />
+                    </h3>
+                    <div className="relative aspect-video w-full max-w-4xl rounded-2xl overflow-hidden shadow-2xl border border-zinc-800 bg-zinc-900">
+                      <iframe
+                        src={`https://www.youtube.com/embed/${trailer.key}`}
+                        className="absolute inset-0 w-full h-full"
+                        allowFullScreen
+                        frameBorder="0"
+                      />
                     </div>
                   </div>
                 )}
