@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { Play, Plus, Check, Info, Star } from 'lucide-react';
+import { Play, Plus, Check, Info, Star, Trash2 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { TMDBItem } from '../types';
 import { getImageUrl } from '../lib/tmdb';
@@ -13,10 +13,11 @@ import { toast } from 'sonner';
 interface MovieCardProps {
   item: TMDBItem;
   onSelect?: (item: TMDBItem) => void;
+  onRemove?: (item: TMDBItem) => void;
   key?: any;
 }
 
-export default function MovieCard({ item, onSelect }: MovieCardProps) {
+export default function MovieCard({ item, onSelect, onRemove }: MovieCardProps) {
   const [isHovered, setIsHovered] = useState(false);
   const [isInWatchlist, setIsInWatchlist] = useState(false);
   const { user, currentProfile, setShowAuthModal } = useAuth();
@@ -149,13 +150,27 @@ export default function MovieCard({ item, onSelect }: MovieCardProps) {
               >
                 {isInWatchlist ? <Check className="w-4 h-4" /> : <Plus className="w-4 h-4" />}
               </Button>
-              <Button 
-                size="icon" 
-                variant="outline" 
-                className="w-8 h-8 rounded-full border-zinc-600 hover:border-white text-white ml-auto"
-              >
-                <Info className="w-4 h-4" />
-              </Button>
+              {onRemove ? (
+                <Button 
+                  size="icon" 
+                  variant="outline" 
+                  className="w-8 h-8 rounded-full border-zinc-600 hover:border-red-500 hover:text-red-500 text-white"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    onRemove(item);
+                  }}
+                >
+                  <Trash2 className="w-4 h-4" />
+                </Button>
+              ) : (
+                <Button 
+                  size="icon" 
+                  variant="outline" 
+                  className="w-8 h-8 rounded-full border-zinc-600 hover:border-white text-white ml-auto"
+                >
+                  <Info className="w-4 h-4" />
+                </Button>
+              )}
             </div>
           </motion.div>
         )}

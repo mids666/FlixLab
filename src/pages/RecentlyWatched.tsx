@@ -1,12 +1,13 @@
 import { useState, useEffect } from 'react';
 import { useAuth } from '../hooks/useAuth';
-import { collection, onSnapshot, query, orderBy } from 'firebase/firestore';
+import { collection, onSnapshot, query, orderBy, doc, deleteDoc } from 'firebase/firestore';
 import { db } from '../lib/firebase';
-import { RecentlyWatchedItem } from '../types';
+import { RecentlyWatchedItem, TMDBItem } from '../types';
 import MovieCard from '../components/MovieCard';
 import { History, Play } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Link, useNavigate } from 'react-router-dom';
+import { toast } from 'sonner';
 
 export default function RecentlyWatched() {
   const { user, currentProfile } = useAuth();
@@ -31,6 +32,23 @@ export default function RecentlyWatched() {
 
     return () => unsubscribe();
   }, [user, currentProfile]);
+
+  const handleRemove = async (item: TMDBItem) => {
+    if (!user || !currentProfile) return;
+
+    try {
+      // Find the document ID in the items array that matches this tmdbId
+      const watchedItem = items.find(i => i.tmdbId === item.id.toString());
+      if (!watchedItem) return;
+
+      const docRef = doc(db, 'users', user.uid, 'profiles', currentProfile.id, 'recentlyWatched', watchedItem.id);
+      await deleteDoc(docRef);
+      toast.success('Removed from history');
+    } catch (error: any) {
+      toast.error('Failed to remove from history');
+      console.error(error);
+    }
+  };
 
   return (
     <div className="min-h-screen pt-24 px-4 md:px-12 pb-20">
@@ -62,6 +80,7 @@ export default function RecentlyWatched() {
                 genre_ids: [],
               }} 
               onSelect={() => navigate(`/watch/${item.type}/${item.tmdbId}`)} 
+              onRemove={handleRemove}
             />
           ))}
         </div>
