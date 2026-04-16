@@ -83,19 +83,6 @@ export default function Home() {
     return () => clearInterval(interval);
   }, [trending]);
 
-  useEffect(() => {
-    if (!user) {
-      const hasShownModal = sessionStorage.getItem('flixlab_auth_modal_shown');
-      if (!hasShownModal) {
-        const timer = setTimeout(() => {
-          setShowAuthModal(true);
-          sessionStorage.setItem('flixlab_auth_modal_shown', 'true');
-        }, 3000);
-        return () => clearTimeout(timer);
-      }
-    }
-  }, [user]);
-
   const handleSelect = (item: TMDBItem) => {
     const type = item.media_type || (item.title ? 'movie' : 'tv');
     navigate(`/watch/${type}/${item.id}`);
