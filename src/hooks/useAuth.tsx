@@ -45,14 +45,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   useEffect(() => {
     if (!user) return;
-
-    // Check if email is verified
-    if (!user.emailVerified) {
-      setUserData(null);
-      setLoading(false);
-      return;
-    }
-
     setLoading(true);
     const userDocRef = doc(db, 'users', user.uid);
     const unsubscribeUser = onSnapshot(userDocRef, (docSnap) => {

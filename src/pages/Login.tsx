@@ -37,22 +37,11 @@ export default function Login() {
     setLoading(true);
     try {
       if (isLogin) {
-        const userCredential = await signInWithEmailAndPassword(auth, email, password);
-        const user = userCredential.user;
-        
-        if (!user.emailVerified) {
-          toast.error('Please verify your email before signing in. Check your inbox.');
-          await signOut(auth);
-          return;
-        }
-        
+        await signInWithEmailAndPassword(auth, email, password);
         toast.success('Logged in successfully');
       } else {
         const userCredential = await createUserWithEmailAndPassword(auth, email, password);
         const user = userCredential.user;
-        
-        // Send verification email
-        await sendEmailVerification(user);
         
         // Update profile with name
         await updateProfile(user, { displayName: name });
@@ -66,8 +55,8 @@ export default function Login() {
           createdAt: new Date().toISOString()
         });
 
-        toast.success('Account created! Please check your email to verify your account.');
-        setIsLogin(true);
+        toast.success('Account created successfully!');
+        navigate('/');
       }
     } catch (error: any) {
       toast.error(error.message);
