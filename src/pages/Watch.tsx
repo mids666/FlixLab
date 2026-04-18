@@ -15,7 +15,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Play, Star, Calendar, Clock, User, Server, ChevronLeft, Download, Youtube, Plus, Check } from 'lucide-react';
+import { Play, Star, Calendar, Clock, User, Server, ChevronLeft, ChevronRight, Youtube, Plus, Check, SkipForward } from 'lucide-react';
 import {
   Dialog,
   DialogContent,
@@ -156,6 +156,33 @@ export default function Watch() {
     addToRecentlyWatched();
   };
 
+  const hasNextEpisode = () => {
+    if (!details || type !== 'tv') return false;
+    const nextEpisodeNum = selectedEpisode + 1;
+    // Check current season
+    const episodesInCurrentSeason = episodes.length;
+    if (episodesInCurrentSeason > 0 && nextEpisodeNum <= episodesInCurrentSeason) return true;
+    // Check if there is a next season
+    if (selectedSeason < details.number_of_seasons) return true;
+    return false;
+  };
+
+  const handleNextEpisode = () => {
+    const nextEpisodeNum = selectedEpisode + 1;
+    const episodesInCurrentSeason = episodes.length;
+    
+    if (nextEpisodeNum <= episodesInCurrentSeason) {
+      setSelectedEpisode(nextEpisodeNum);
+      scrollTo(0, 0);
+    } else if (selectedSeason < details.number_of_seasons) {
+      setSelectedSeason(prev => prev + 1);
+      setSelectedEpisode(1);
+      scrollTo(0, 0);
+    } else {
+      toast.info("You've reached the end of the show!");
+    }
+  };
+
   const handlePersonClick = (personId: number) => {
     navigate(`/person/${personId}`);
   };
@@ -234,15 +261,19 @@ export default function Watch() {
 
                 <div className="h-4 w-[1px] bg-zinc-800 mx-2 hidden md:block" />
 
-                <Button
-                  size="sm"
-                  variant="outline"
-                  className="h-8 px-4 rounded-full text-xs font-bold border-zinc-700 text-zinc-400 hover:text-white hover:border-white gap-2"
-                  onClick={() => window.open(embedUrl, '_blank')}
-                >
-                  <Download className="w-3 h-3" />
-                  Download
-                </Button>
+                {type === 'tv' && hasNextEpisode() && (
+                  <>
+                    <Button
+                      size="sm"
+                      className="h-8 px-4 rounded-full text-xs font-bold bg-white text-black hover:bg-zinc-200 gap-2"
+                      onClick={handleNextEpisode}
+                    >
+                      <SkipForward className="w-3 h-3 fill-current" />
+                      Next Episode
+                    </Button>
+                    <div className="h-4 w-[1px] bg-zinc-800 mx-2 hidden md:block" />
+                  </>
+                )}
               </div>
             </div>
           ) : (
