@@ -22,12 +22,6 @@ export default function Person() {
     }
   }, [id]);
 
-  useEffect(() => {
-    if (!loading && person && !user) {
-      setShowAuthModal(true);
-    }
-  }, [loading, person, user, setShowAuthModal]);
-
   if (loading) {
     return (
       <div className="min-h-screen bg-[#0a0a0a] flex items-center justify-center">
@@ -43,7 +37,7 @@ export default function Person() {
     .slice(0, 24) || [];
 
   return (
-    <div className={`min-h-screen bg-[#0a0a0a] text-white pb-20 pt-20 transition-all duration-700 ${!user ? 'blur-xl pointer-events-none select-none' : ''}`}>
+    <div className="min-h-screen bg-[#0a0a0a] text-white pb-20 pt-20 transition-all duration-700">
       {/* Hero Section */}
       <div className="relative overflow-hidden px-6 md:px-12 py-12 md:py-20">
         {/* Background */}
