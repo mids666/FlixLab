@@ -7,6 +7,7 @@ import {
   Play, 
   ChevronRight, 
   ChevronLeft,
+  ArrowLeft,
   Globe,
   Star,
   RefreshCw,
@@ -131,6 +132,7 @@ export default function LiveTV() {
   const [loading, setLoading] = useState(true);
   const [selectedChannel, setSelectedChannel] = useState<TVChannel | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
+  const [showEnglishOnly, setShowEnglishOnly] = useState(false);
   const [favorites, setFavorites] = useState<string[]>(() => {
     const saved = localStorage.getItem('tv-favorites');
     return saved ? JSON.parse(saved) : [];
@@ -161,12 +163,14 @@ export default function LiveTV() {
         const logo = logoMatch ? logoMatch[1] : undefined;
         const idMatch = line.match(/tvg-id="([^"]+)"/);
         const id = idMatch ? idMatch[1] : Math.random().toString(36).substr(2, 9);
+        const langMatch = line.match(/tvg-language="([^"]+)"/);
+        const language = langMatch ? langMatch[1] : (category === 'Global' ? 'eng' : undefined);
 
         if (name.toLowerCase().includes('geo-blocked') || name.toLowerCase().includes('offline')) {
           continue;
         }
 
-        currentChannel = { id, name, logo, category };
+        currentChannel = { id, name, logo, category, language };
       } else if (line.startsWith('http')) {
         currentChannel.url = line.trim();
         if (currentChannel.name && currentChannel.url) {
@@ -222,11 +226,32 @@ export default function LiveTV() {
   };
 
   const getChannelsByCategory = (category: string) => {
-    return channels.filter(c => c.category.toLowerCase() === category.toLowerCase())
-      .filter(c => c.name.toLowerCase().includes(searchQuery.toLowerCase()));
+    let filtered = channels.filter(c => c.category.toLowerCase() === category.toLowerCase());
+    
+    if (showEnglishOnly) {
+      filtered = filtered.filter(c => 
+        c.language?.toLowerCase().includes('eng') || 
+        c.name.toLowerCase().includes('(english)') ||
+        c.name.toLowerCase().includes(' en') ||
+        c.category === 'Global'
+      );
+    }
+
+    return filtered.filter(c => c.name.toLowerCase().includes(searchQuery.toLowerCase()));
   };
 
-  const searchResults = searchQuery ? channels.filter(c => c.name.toLowerCase().includes(searchQuery.toLowerCase())) : [];
+  const searchResults = searchQuery ? channels.filter(c => {
+    const matchesQuery = c.name.toLowerCase().includes(searchQuery.toLowerCase());
+    if (showEnglishOnly) {
+      return matchesQuery && (
+        c.language?.toLowerCase().includes('eng') || 
+        c.name.toLowerCase().includes('(english)') ||
+        c.name.toLowerCase().includes(' en') ||
+        c.category === 'Global'
+      );
+    }
+    return matchesQuery;
+  }) : [];
 
   if (loading && channels.length === 0) {
     return (
@@ -257,6 +282,36 @@ export default function LiveTV() {
           </div>
 
           <div className="flex items-center gap-4 w-full md:w-auto">
+            <AnimatePresence>
+              {searchQuery && (
+                <motion.div
+                  initial={{ opacity: 0, x: 20 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  exit={{ opacity: 0, x: 20 }}
+                >
+                  <Button 
+                    variant="ghost" 
+                    className="gap-2 text-zinc-400 hover:text-white h-12 px-4 rounded-xl border border-zinc-800 bg-zinc-900/50"
+                    onClick={() => setSearchQuery('')}
+                  >
+                    <ArrowLeft className="w-4 h-4" />
+                    <span className="hidden sm:inline">Back</span>
+                  </Button>
+                </motion.div>
+              )}
+            </AnimatePresence>
+
+            <div className="flex items-center gap-2 bg-zinc-900 border border-zinc-800 p-1 rounded-xl h-12 px-3">
+              <span className={`text-[10px] font-black uppercase tracking-widest transition-colors ${!showEnglishOnly ? 'text-white' : 'text-zinc-600'}`}>Global</span>
+              <button 
+                onClick={() => setShowEnglishOnly(!showEnglishOnly)}
+                className={`w-10 h-5 rounded-full relative transition-colors duration-300 focus:outline-none ${showEnglishOnly ? 'bg-red-600' : 'bg-zinc-800'}`}
+              >
+                <div className={`absolute top-1 w-3 h-3 bg-white rounded-full transition-transform duration-300 ${showEnglishOnly ? 'translate-x-6' : 'translate-x-1'}`} />
+              </button>
+              <span className={`text-[10px] font-black uppercase tracking-widest transition-colors ${showEnglishOnly ? 'text-white' : 'text-zinc-600'}`}>English</span>
+            </div>
+
             <div className="relative flex-1 md:w-80 group">
               <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-500 group-focus-within:text-red-500 transition-colors" />
               <Input 

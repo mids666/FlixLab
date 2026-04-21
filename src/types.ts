@@ -59,4 +59,5 @@ export interface TVChannel {
   url: string;
   logo?: string;
   category: string;
+  language?: string;
 }
