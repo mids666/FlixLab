@@ -77,6 +77,7 @@ export default function Navbar() {
     { name: 'Home', path: '/' },
     { name: 'Movies', path: '/browse/movie' },
     { name: 'TV Shows', path: '/browse/tv' },
+    { name: 'Live TV', path: '/live' },
     { name: 'Watchlist', path: '/watchlist', protected: true },
     { name: 'Recently Watched', path: '/recently-watched', protected: true },
   ];

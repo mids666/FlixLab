@@ -52,3 +52,11 @@ export interface Genre {
   id: number;
   name: string;
 }
+
+export interface TVChannel {
+  id: string;
+  name: string;
+  url: string;
+  logo?: string;
+  category: string;
+}

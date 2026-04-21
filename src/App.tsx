@@ -9,6 +9,7 @@ import { AuthProvider, useAuth } from './hooks/useAuth';
 import { Toaster } from '@/components/ui/sonner';
 import Home from './pages/Home';
 import Browse from './pages/Browse';
+import LiveTV from './pages/LiveTV';
 import Search from './pages/Search';
 import Watchlist from './pages/Watchlist';
 import RecentlyWatched from './pages/RecentlyWatched';
@@ -42,6 +43,7 @@ function AppRoutes() {
     <Layout>
       <Routes>
         <Route path="/" element={<Home />} />
+        <Route path="/live" element={<LiveTV />} />
         <Route path="/login" element={user ? <Navigate to="/" replace /> : <Login />} />
         <Route path="/browse/:type" element={<Browse />} />
         <Route path="/search" element={<Search />} />
