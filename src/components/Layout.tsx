@@ -11,7 +11,7 @@ export default function Layout({ children }: { children: React.ReactNode }) {
       <main className="pt-0">
         {children}
       </main>
-      <footer className="py-12 px-4 md:px-12 border-t border-border mt-20 bg-muted/50 transition-colors">
+      <footer className="py-12 px-4 md:px-12 border-t border-border mt-20 bg-background transition-colors">
         <div className="max-w-7xl mx-auto grid grid-cols-2 md:grid-cols-4 gap-8">
           <div className="space-y-4">
             <h3 className="text-red-600 font-black tracking-tighter text-2xl">FLIXLAB</h3>
