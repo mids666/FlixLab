@@ -200,8 +200,9 @@ export default function Discover() {
 
     if (isSearching) {
       return (
-        <div className="p-4 pt-24 grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-7 xl:grid-cols-8 gap-6 overflow-y-auto h-full bg-[#0a0a0a]">
-          {searchResults.map((item: any) => (
+        <div className="absolute inset-0 pt-24 pb-safe overflow-y-auto bg-[#0a0a0a] overscroll-contain" style={{ touchAction: 'pan-y' }}>
+          <div className="p-4 grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-7 xl:grid-cols-8 gap-4 md:gap-6">
+            {searchResults.map((item: any) => (
             <motion.div
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
@@ -249,8 +250,9 @@ export default function Discover() {
              </div>
           )}
         </div>
-      );
-    }
+      </div>
+    );
+  }
 
     const currentItem = items[currentIndex];
     if (!currentItem) {
@@ -279,7 +281,6 @@ export default function Discover() {
     return (
       <div 
         className="relative w-full h-full flex items-center justify-center overflow-hidden bg-black"
-        style={{ touchAction: 'none' }}
       >
         <AnimatePresence mode="wait">
           <motion.div
@@ -298,7 +299,6 @@ export default function Discover() {
                   allow="autoplay"
                   frameBorder="0"
                 />
-                {/* Overlay to hide the initial YouTube pause/play flash */}
                 <motion.div 
                   initial={{ opacity: 1 }}
                   animate={{ opacity: 0 }}
@@ -317,72 +317,75 @@ export default function Discover() {
           </motion.div>
         </AnimatePresence>
 
-        <div className="relative z-10 w-full h-full p-4 lg:p-12 mb-10 pointer-events-none text-left">
-          <div 
-            className="w-full h-full flex flex-col justify-end max-w-4xl mx-auto"
-            style={{ touchAction: 'none' }}
-          >
-            {/* Invisible drag area that covers the screen but allows text overlay to be interactive */}
-            <motion.div
-              drag={isPortrait ? "y" : "x"}
-              dragConstraints={{ top: 0, bottom: 0, left: 0, right: 0 }}
-              onDragEnd={(e, info) => {
-                const threshold = 50;
-                if (isPortrait) {
-                  if (info.offset.y < -threshold) nextItem();
-                  else if (info.offset.y > threshold) prevItem();
-                } else {
-                  if (info.offset.x < -threshold) nextItem();
-                  else if (info.offset.x > threshold) prevItem();
-                }
-              }}
-              className="absolute inset-0 z-0 pointer-events-auto"
-            />
+        {/* Swipe Control Layer */}
+        <motion.div
+          drag={isPortrait ? "y" : "x"}
+          dragConstraints={{ top: 0, bottom: 0, left: 0, right: 0 }}
+          onDragEnd={(e, info) => {
+            const threshold = 50;
+            if (isPortrait) {
+              if (info.offset.y < -threshold) nextItem();
+              else if (info.offset.y > threshold) prevItem();
+            } else {
+              if (info.offset.x < -threshold) nextItem();
+              else if (info.offset.x > threshold) prevItem();
+            }
+          }}
+          className="absolute inset-0 z-10 cursor-grab active:cursor-grabbing"
+          style={{ touchAction: 'none' }}
+        />
 
+        <div className="relative z-20 w-full h-full p-4 lg:p-12 pb-24 pointer-events-none text-left flex flex-col justify-end">
+          <div className="w-full max-w-4xl mx-auto">
             <motion.div
               key={`info-${currentItem.id}`}
               initial={{ y: 50, opacity: 0 }}
               animate={{ y: 0, opacity: 1 }}
               transition={{ duration: 0.8, ease: "easeOut" }}
-              className="relative z-10 space-y-6 pointer-events-auto"
+              className="space-y-4 md:space-y-6 pointer-events-auto"
             >
-              <div className="flex items-center gap-3">
-                 <span className="px-3 py-1 bg-red-600 text-[10px] font-black uppercase rounded-full tracking-tight">
+              <div className="flex flex-wrap items-center gap-2 md:gap-3">
+                 <span className="px-3 py-1 bg-red-600 text-[10px] font-black uppercase rounded-full tracking-tight whitespace-nowrap">
                    {currentItem.media_type === 'tv' ? 'Trending Series' : 'Trending Movie'}
                  </span>
                  <div className="flex items-center gap-1.5 px-3 py-1 bg-white/10 backdrop-blur-md rounded-full border border-white/10">
                    <span className="text-yellow-500 font-black">★</span>
                    <span className="text-sm font-black text-white">{currentItem.vote_average?.toFixed(1)}</span>
-                   <span className="text-[10px] font-bold text-zinc-400 uppercase tracking-widest ml-1 self-end mb-0.5">Score</span>
                  </div>
                  <span className="text-zinc-300 text-sm font-bold bg-white/5 px-3 py-1 rounded-full backdrop-blur-sm border border-white/5">
                    {new Date(currentItem.release_date || currentItem.first_air_date || '').getFullYear()}
                  </span>
               </div>
 
-              <h2 className="text-4xl md:text-6xl font-black tracking-tighter text-white uppercase leading-[0.9] drop-shadow-[0_0_30px_rgba(0,0,0,0.5)]">
+              <h2 className="text-3xl md:text-6xl font-black tracking-tighter text-white uppercase leading-[0.9] drop-shadow-[0_0_30px_rgba(0,0,0,0.5)]">
                 {currentItem.title || currentItem.name}
               </h2>
 
-              <p className="text-zinc-300 text-sm md:text-base max-w-xl leading-relaxed line-clamp-3 md:line-clamp-4 drop-shadow-lg font-medium">
+              <p className="text-zinc-300 text-xs md:text-base max-w-xl leading-relaxed line-clamp-3 md:line-clamp-4 drop-shadow-lg font-medium">
                 {currentItem.overview}
               </p>
 
               <div className="flex flex-wrap items-center gap-3 pt-2">
                 <Button 
                   size="lg"
-                  className="bg-white text-black hover:bg-zinc-200 h-12 px-8 rounded-xl font-black uppercase tracking-tighter gap-2 transition-all hover:scale-105 active:scale-95 shadow-lg"
-                  onClick={() => handlePlay(currentItem)}
+                  className="bg-white text-black hover:bg-zinc-200 h-10 md:h-12 px-6 md:px-8 rounded-xl font-black uppercase tracking-tighter gap-2 transition-all hover:scale-105 active:scale-95 shadow-lg"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    handlePlay(currentItem);
+                  }}
                 >
                   <Play className="w-5 h-5 fill-current" />
-                  Play Now
+                  Play
                 </Button>
 
                 <Button 
                   size="lg"
                   variant="outline"
-                  onClick={toggleWatchlist}
-                  className={`h-12 px-6 rounded-xl font-black uppercase tracking-tighter gap-2 transition-all backdrop-blur-md border-white/20 active:scale-95 ${
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    toggleWatchlist();
+                  }}
+                  className={`h-10 md:h-12 px-5 md:px-6 rounded-xl font-black uppercase tracking-tighter gap-2 transition-all backdrop-blur-md border-white/20 active:scale-95 ${
                     isInWatchlist ? 'bg-red-600 border-red-600 text-white' : 'bg-white/10 text-white hover:bg-white/20'
                   }`}
                 >
