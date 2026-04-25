@@ -83,6 +83,8 @@ export default function Navbar() {
     { name: 'Live TV', path: '/live' },
   ];
 
+  const isDiscoverPage = location.pathname === '/discover';
+
   return (
     <nav 
       className={`fixed top-0 w-full z-50 transition-all duration-300 px-4 lg:px-12 py-4 flex items-center justify-between ${
@@ -95,37 +97,41 @@ export default function Navbar() {
         </Link>
         
         {/* Desktop Nav */}
-        <div className="hidden lg:flex items-center gap-6">
-          {navLinks.map((link) => (
-            <button
-              key={link.name}
-              onClick={() => {
-                if (link.protected && !user) {
-                  setShowAuthModal(true);
-                } else {
-                  navigate(link.path);
-                }
-              }}
-              className={`text-sm font-medium transition-colors hover:text-red-500 ${
-                location.pathname === link.path ? 'text-foreground' : 'text-muted-foreground'
-              }`}
-            >
-              {link.name}
-            </button>
-          ))}
-        </div>
+        {!isDiscoverPage && (
+          <div className="hidden lg:flex items-center gap-6">
+            {navLinks.map((link) => (
+              <button
+                key={link.name}
+                onClick={() => {
+                  if (link.protected && !user) {
+                    setShowAuthModal(true);
+                  } else {
+                    navigate(link.path);
+                  }
+                }}
+                className={`text-sm font-medium transition-colors hover:text-red-500 ${
+                  location.pathname === link.path ? 'text-foreground' : 'text-muted-foreground'
+                }`}
+              >
+                {link.name}
+              </button>
+            ))}
+          </div>
+        )}
       </div>
 
       <div className="flex items-center gap-4 lg:gap-6">
         {/* Discover Button */}
-        <Button
-          variant="ghost"
-          className="text-muted-foreground hover:text-foreground hover:bg-muted gap-2 font-bold px-4 transition-colors"
-          onClick={() => navigate('/discover')}
-        >
-          <Compass className="w-5 h-5 text-red-600" />
-          <span className="hidden sm:inline uppercase tracking-tighter">Discover</span>
-        </Button>
+        {!isDiscoverPage && (
+          <Button
+            variant="ghost"
+            className="text-muted-foreground hover:text-foreground hover:bg-muted gap-2 font-bold px-4 transition-colors"
+            onClick={() => navigate('/discover')}
+          >
+            <Compass className="w-5 h-5 text-red-600" />
+            <span className="hidden sm:inline uppercase tracking-tighter">Discover</span>
+          </Button>
+        )}
 
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
@@ -244,7 +250,7 @@ export default function Navbar() {
 
         {/* Mobile Menu Toggle */}
         <button 
-          className="lg:hidden text-foreground transition-colors"
+          className={`${isDiscoverPage ? 'flex' : 'lg:hidden'} text-foreground transition-colors`}
           onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
         >
           {isMobileMenuOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
@@ -258,18 +264,20 @@ export default function Navbar() {
             initial={{ opacity: 0, y: -20 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -20 }}
-            className="absolute top-full left-0 w-full bg-background border-b border-border p-6 flex flex-col gap-4 lg:hidden"
+            className={`absolute top-full left-0 w-full bg-background border-b border-border p-6 flex flex-col gap-4 ${!isDiscoverPage ? 'lg:hidden' : ''}`}
           >
-            <Button
-              className="bg-muted border border-border h-12 text-foreground gap-3 justify-center font-bold mb-2 rounded-xl"
-              onClick={() => {
-                setIsMobileMenuOpen(false);
-                navigate('/discover');
-              }}
-            >
-              <Compass className="w-5 h-5 text-red-600" />
-              DISCOVER NEW MOVIES
-            </Button>
+            {!isDiscoverPage && (
+              <Button
+                className="bg-muted border border-border h-12 text-foreground gap-3 justify-center font-bold mb-2 rounded-xl"
+                onClick={() => {
+                  setIsMobileMenuOpen(false);
+                  navigate('/discover');
+                }}
+              >
+                <Compass className="w-5 h-5 text-red-600" />
+                DISCOVER NEW MOVIES
+              </Button>
+            )}
             {navLinks.map((link) => (
               <button
                 key={link.name}
