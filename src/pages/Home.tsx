@@ -359,9 +359,9 @@ export default function Home() {
                     className="w-full h-full object-cover transition-transform duration-1000 group-hover:scale-105"
                     referrerPolicy="no-referrer"
                   />
-                  <div className="absolute inset-0 bg-gradient-to-t from-background via-background/60 to-transparent z-10" />
-                  <div className="absolute inset-x-0 bottom-0 h-64 bg-gradient-to-t from-background via-background/80 to-transparent z-10" />
-                  <div className="absolute inset-0 bg-gradient-to-r from-background/60 via-transparent to-transparent hidden md:block z-10" />
+                  <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent z-10" />
+                  <div className="absolute inset-x-0 bottom-0 h-64 bg-gradient-to-t from-black/95 via-black/40 to-transparent z-10" />
+                  <div className="absolute inset-0 bg-gradient-to-r from-black/60 via-transparent to-transparent hidden md:block z-10" />
                   
                   {/* Not Interested Button */}
                   <div className="absolute top-8 right-8 z-30">
@@ -457,7 +457,7 @@ export default function Home() {
                         className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110"
                         referrerPolicy="no-referrer"
                       />
-                      <div className="absolute inset-0 bg-gradient-to-t from-background via-background/20 to-transparent opacity-90 z-10" />
+                      <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-transparent to-transparent z-10" />
                       
                       {/* Small Card Menu */}
                       <div className="absolute top-3 right-3 z-30">
