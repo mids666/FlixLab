@@ -155,11 +155,11 @@ export default function Home() {
                   })()}
                 </div>
                 
-                <h1 className="text-4xl md:text-6xl lg:text-7xl font-black tracking-tighter text-white leading-[0.9] max-w-4xl text-balance drop-shadow-xl">
+                <h1 className="text-3xl md:text-5xl lg:text-6xl font-black tracking-tighter text-white leading-[0.9] max-w-3xl text-balance drop-shadow-xl">
                   {featured.title || featured.name}
                 </h1>
                 
-                <p className="text-base md:text-lg text-white/80 line-clamp-2 md:line-clamp-3 max-w-2xl leading-relaxed drop-shadow-md">
+                <p className="text-sm md:text-base text-white/80 line-clamp-2 md:line-clamp-3 max-w-xl leading-relaxed drop-shadow-md">
                   {featured.overview}
                 </p>
 
