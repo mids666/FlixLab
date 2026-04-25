@@ -223,7 +223,7 @@ export default function Person() {
                   <span className="text-xs text-zinc-600 font-bold">{person.combined_credits.cast.length} Total Credits</span>
                 </div>
                 
-                <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
+                <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 gap-4">
                   {sortedCredits.map((item: any, index: number) => (
                     <Link 
                       key={`${item.id}-${index}`}

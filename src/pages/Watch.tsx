@@ -543,7 +543,7 @@ export default function Watch() {
                     Cast
                     <span className="w-8 h-0.5 bg-red-600 rounded-full" />
                   </h3>
-                  <div className="grid grid-cols-2 sm:grid-cols-4 md:grid-cols-5 gap-4">
+                  <div className="grid grid-cols-3 sm:grid-cols-5 md:grid-cols-6 lg:grid-cols-7 gap-4">
                     {details.credits?.cast?.slice(0, 10).map((person: any, index: number) => (
                       <button 
                         key={`${person.id}-${index}`} 

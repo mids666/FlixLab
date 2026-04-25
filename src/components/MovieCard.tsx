@@ -91,7 +91,7 @@ export default function MovieCard({ item, onSelect, onRemove }: MovieCardProps) 
 
   return (
     <div 
-      className="relative flex-none w-[160px] md:w-[240px] aspect-[2/3] cursor-pointer group"
+      className="relative flex-none w-[140px] md:w-[200px] aspect-[2/3] cursor-pointer group"
       onMouseEnter={() => setIsHovered(true)}
       onMouseLeave={() => setIsHovered(false)}
       onClick={() => handleSelect()}

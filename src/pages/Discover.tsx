@@ -200,7 +200,7 @@ export default function Discover() {
 
     if (isSearching) {
       return (
-        <div className="p-4 pt-24 grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-6 overflow-y-auto h-full bg-[#0a0a0a]">
+        <div className="p-4 pt-24 grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-7 xl:grid-cols-8 gap-6 overflow-y-auto h-full bg-[#0a0a0a]">
           {searchResults.map((item: any) => (
             <motion.div
               initial={{ opacity: 0, y: 20 }}

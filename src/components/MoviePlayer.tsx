@@ -331,7 +331,7 @@ export default function MoviePlayer({ item, isOpen, onClose }: MoviePlayerProps)
 
               <div className="space-y-8">
                 <h3 className="text-3xl font-bold text-white">Cast</h3>
-                <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-8">
+                <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-7 xl:grid-cols-8 gap-6">
                   {details.credits?.cast?.slice(0, 12).map((person: any) => (
                     <div key={person.id} className="group/cast space-y-4">
                       <div className="aspect-square rounded-full overflow-hidden bg-zinc-800 border-2 border-zinc-800 group-hover/cast:border-red-600 transition-all duration-300 shadow-xl">
@@ -359,8 +359,8 @@ export default function MoviePlayer({ item, isOpen, onClose }: MoviePlayerProps)
               {details.recommendations?.results?.length > 0 && (
                 <div className="space-y-8">
                   <h3 className="text-3xl font-bold text-white">More Like This</h3>
-                  <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-6">
-                    {details.recommendations.results.slice(0, 5).map((rec: any) => (
+                  <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6 gap-4">
+                    {details.recommendations.results.slice(0, 6).map((rec: any) => (
                       <button 
                         key={rec.id}
                         className="group/rec text-left space-y-3"
