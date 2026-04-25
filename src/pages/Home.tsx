@@ -307,7 +307,7 @@ export default function Home() {
             <div className="px-4 md:px-12 py-12 relative overflow-hidden">
               {/* Contextual Backdrop Text */}
               <div className="absolute top-0 left-12 opacity-[0.03] dark:opacity-[0.05] select-none pointer-events-none transition-colors">
-                <h1 className="text-[4rem] sm:text-[6rem] md:text-[8rem] lg:text-[10rem] font-black tracking-tighter leading-none uppercase">
+                <h1 className="text-[2.5rem] sm:text-[3.5rem] md:text-[4.5rem] lg:text-[5.5rem] font-black tracking-tighter leading-none uppercase">
                   RECOMMENDED
                 </h1>
               </div>
