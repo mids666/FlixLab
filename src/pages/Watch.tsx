@@ -52,6 +52,25 @@ export default function Watch() {
   const [isInWatchlist, setIsInWatchlist] = useState(false);
 
   useEffect(() => {
+    if (id) {
+      const saved = localStorage.getItem(`last_watched_${id}`);
+      if (saved) {
+        try {
+          const { season, episode } = JSON.parse(saved);
+          setSelectedSeason(season || 1);
+          setSelectedEpisode(episode || 1);
+        } catch (e) {
+          setSelectedSeason(1);
+          setSelectedEpisode(1);
+        }
+      } else {
+        setSelectedSeason(1);
+        setSelectedEpisode(1);
+      }
+    }
+  }, [id]);
+
+  useEffect(() => {
     if (id && type) {
       tmdbService.getDetails(type as 'movie' | 'tv', id).then(setDetails);
     }
@@ -71,31 +90,15 @@ export default function Watch() {
   }, [user, currentProfile, id]);
 
   useEffect(() => {
-    if (details) {
-      const itemType = details.title ? 'movie' : 'tv';
-      
-      if (itemType === 'tv' || details.number_of_seasons) {
-        const saved = localStorage.getItem(`last_watched_${details.id}`);
-        if (saved) {
-          try {
-            const { season, episode } = JSON.parse(saved);
-            setSelectedSeason(season || 1);
-            setSelectedEpisode(episode || 1);
-          } catch (e) {
-            setSelectedSeason(1);
-            setSelectedEpisode(1);
-          }
-        }
-      }
-    }
-  }, [details?.id]);
-
-  useEffect(() => {
     if (details && (details.number_of_seasons || !details.title)) {
-      localStorage.setItem(`last_watched_${details.id}`, JSON.stringify({
-        season: selectedSeason,
-        episode: selectedEpisode
-      }));
+      // Only save if it's not the default 1,1 unless we've already tried to load
+      const saved = localStorage.getItem(`last_watched_${details.id}`);
+      if (saved || selectedSeason !== 1 || selectedEpisode !== 1) {
+        localStorage.setItem(`last_watched_${details.id}`, JSON.stringify({
+          season: selectedSeason,
+          episode: selectedEpisode
+        }));
+      }
     }
   }, [selectedSeason, selectedEpisode, details?.id]);
 
@@ -195,6 +198,32 @@ export default function Watch() {
   const handlePersonClick = (personId: number) => {
     navigate(`/person/${personId}`);
   };
+
+  useEffect(() => {
+    const handleMessage = (event: MessageEvent) => {
+      if (typeof event.data === 'string') {
+        try {
+          const data = JSON.parse(event.data);
+          // Common event names for various embed players
+          if (data.event === 'next_episode' || data.event === 'video_next') {
+            handleNextEpisode();
+          }
+        } catch (e) {
+          // Some players send non-JSON strings
+          if (event.data === 'next_episode') {
+            handleNextEpisode();
+          }
+        }
+      } else if (event.data && typeof event.data === 'object') {
+        if (event.data.event === 'next_episode' || event.data.type === 'next_episode') {
+          handleNextEpisode();
+        }
+      }
+    };
+
+    window.addEventListener('message', handleMessage);
+    return () => window.removeEventListener('message', handleMessage);
+  }, [selectedEpisode, selectedSeason, episodes.length, details?.number_of_seasons]);
 
   if (!details) return (
     <div className="h-screen w-screen flex items-center justify-center bg-background text-foreground">

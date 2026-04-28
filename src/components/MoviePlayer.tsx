@@ -31,30 +31,14 @@ export default function MoviePlayer({ item, isOpen, onClose }: MoviePlayerProps)
   const [selectedServer, setSelectedServer] = useState<ServerOption>('vidcore');
 
   useEffect(() => {
-    if (item) {
-      const type = item.media_type || (item.title ? 'movie' : 'tv');
-      tmdbService.getDetails(type as 'movie' | 'tv', item.id.toString()).then(setDetails);
-      setIsPlaying(false);
-    }
-  }, [item]);
-
-  useEffect(() => {
-    if (details) {
-      const type = details.title ? 'movie' : 'tv';
-      
-      // Load last watched episode from localStorage
-      if (type === 'tv' || details.number_of_seasons) {
-        const saved = localStorage.getItem(`last_watched_${details.id}`);
-        if (saved) {
-          try {
-            const { season, episode } = JSON.parse(saved);
-            setSelectedSeason(season || 1);
-            setSelectedEpisode(episode || 1);
-          } catch (e) {
-            setSelectedSeason(1);
-            setSelectedEpisode(1);
-          }
-        } else {
+    if (item?.id) {
+      const saved = localStorage.getItem(`last_watched_${item.id}`);
+      if (saved) {
+        try {
+          const { season, episode } = JSON.parse(saved);
+          setSelectedSeason(season || 1);
+          setSelectedEpisode(episode || 1);
+        } catch (e) {
           setSelectedSeason(1);
           setSelectedEpisode(1);
         }
@@ -63,17 +47,64 @@ export default function MoviePlayer({ item, isOpen, onClose }: MoviePlayerProps)
         setSelectedEpisode(1);
       }
     }
-  }, [details?.id]);
+  }, [item?.id]);
+
+  useEffect(() => {
+    if (item) {
+      const type = item.media_type || (item.title ? 'movie' : 'tv');
+      tmdbService.getDetails(type as 'movie' | 'tv', item.id.toString()).then(setDetails);
+      setIsPlaying(false);
+    }
+  }, [item]);
 
   // Save last watched episode to localStorage
   useEffect(() => {
     if (details && (details.number_of_seasons || !details.title)) {
-      localStorage.setItem(`last_watched_${details.id}`, JSON.stringify({
-        season: selectedSeason,
-        episode: selectedEpisode
-      }));
+      const saved = localStorage.getItem(`last_watched_${details.id}`);
+      if (saved || selectedSeason !== 1 || selectedEpisode !== 1) {
+        localStorage.setItem(`last_watched_${details.id}`, JSON.stringify({
+          season: selectedSeason,
+          episode: selectedEpisode
+        }));
+      }
     }
   }, [selectedSeason, selectedEpisode, details?.id]);
+
+  useEffect(() => {
+    const handleNextEpisodeInternal = () => {
+      const nextEpisodeNum = selectedEpisode + 1;
+      const episodesInCurrentSeason = episodes.length;
+      
+      if (episodesInCurrentSeason > 0 && nextEpisodeNum <= episodesInCurrentSeason) {
+        setSelectedEpisode(nextEpisodeNum);
+      } else if (details?.number_of_seasons && selectedSeason < details.number_of_seasons) {
+        setSelectedSeason(prev => prev + 1);
+        setSelectedEpisode(1);
+      }
+    };
+
+    const handleMessage = (event: MessageEvent) => {
+      if (typeof event.data === 'string') {
+        try {
+          const data = JSON.parse(event.data);
+          if (data.event === 'next_episode' || data.event === 'video_next') {
+            handleNextEpisodeInternal();
+          }
+        } catch (e) {
+          if (event.data === 'next_episode') {
+            handleNextEpisodeInternal();
+          }
+        }
+      } else if (event.data && typeof event.data === 'object') {
+        if (event.data.event === 'next_episode' || event.data.type === 'next_episode') {
+          handleNextEpisodeInternal();
+        }
+      }
+    };
+
+    window.addEventListener('message', handleMessage);
+    return () => window.removeEventListener('message', handleMessage);
+  }, [selectedEpisode, selectedSeason, episodes.length, details?.number_of_seasons]);
 
   useEffect(() => {
     if (details && details.number_of_seasons) {
