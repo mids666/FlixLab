@@ -156,8 +156,8 @@ export default function MoviePlayer({ item, isOpen, onClose }: MoviePlayerProps)
   const getEmbedUrl = () => {
     if (selectedServer === 'vidcore') {
       return type === 'movie'
-        ? `https://vidcore.net/movie/${item.id}?autoPlay=true`
-        : `https://vidcore.net/tv/${item.id}/${selectedSeason}/${selectedEpisode}?autoPlay=true`;
+        ? `https://vidcore.net/movie/${item.id}?autoPlay=true&nextButton=false`
+        : `https://vidcore.net/tv/${item.id}/${selectedSeason}/${selectedEpisode}?autoPlay=true&nextButton=false`;
     } else if (selectedServer === 'peachify') {
       return type === 'movie'
         ? `https://peachify.top/embed/movie/${item.id}`

@@ -267,7 +267,7 @@ export default function Watch() {
   );
 
   const getEmbedUrl = () => {
-    const params = settings.autoplay ? 'autoPlay=true' : 'autoPlay=false';
+    const params = settings.autoplay ? 'autoPlay=true&nextButton=false' : 'autoPlay=false&nextButton=false';
     const tmdbParams = settings.autoplay ? '?autoplay=1' : '?autoplay=0';
     
     if (selectedServer === 'vidcore') {
