@@ -38,7 +38,7 @@ type ServerOption = 'vidcore' | 'peachify' | 'videasy' | 'vidsrc' | 'vidlink' | 
 export default function Watch() {
   const { type, id } = useParams<{ type: string; id: string }>();
   const navigate = useNavigate();
-  const { user, currentProfile, setShowAuthModal } = useAuth();
+  const { user, currentProfile, setShowAuthModal, watchlist, toggleWatchlist, addToRecentlyWatched: addHistory } = useAuth();
   const { settings } = useSettings();
   
   const [details, setDetails] = useState<any>(null);
@@ -71,7 +71,8 @@ export default function Watch() {
   });
   const [episodes, setEpisodes] = useState<any[]>([]);
   const [selectedServer, setSelectedServer] = useState<ServerOption>('vidcore');
-  const [isInWatchlist, setIsInWatchlist] = useState(false);
+
+  const isInWatchlist = watchlist.some(w => w.tmdbId === id?.toString());
 
   useEffect(() => {
     if (id) {
@@ -99,19 +100,6 @@ export default function Watch() {
   }, [id, type]);
 
   useEffect(() => {
-    if (!user || !currentProfile || !id) return;
-
-    const watchlistRef = collection(db, 'users', user.uid, 'profiles', currentProfile.id, 'watchlist');
-    const q = query(watchlistRef, where('tmdbId', '==', id.toString()));
-    
-    const unsubscribe = onSnapshot(q, (snapshot) => {
-      setIsInWatchlist(!snapshot.empty);
-    });
-
-    return () => unsubscribe();
-  }, [user, currentProfile, id]);
-
-  useEffect(() => {
     if (details && (details.number_of_seasons || !details.title)) {
       // Small delay to ensure we've had time to load from localStorage first if we just mounted
       const timer = setTimeout(() => {
@@ -132,57 +120,16 @@ export default function Watch() {
 
   const addToRecentlyWatched = async () => {
     if (!user || !currentProfile || !details) return;
-
-    const recentlyWatchedRef = doc(db, 'users', user.uid, 'profiles', currentProfile.id, 'recentlyWatched', details.id.toString());
-    
-    const data: any = {
-      tmdbId: details.id.toString(),
-      type: details.title ? 'movie' : 'tv',
-      title: details.title || details.name,
-      posterPath: details.poster_path,
-      voteAverage: details.vote_average,
-      watchedAt: new Date().toISOString(),
-    };
-
-    if (details.number_of_seasons) {
-      data.season = selectedSeason;
-      data.episode = selectedEpisode;
-    }
-    
-    try {
-      await setDoc(recentlyWatchedRef, data);
-    } catch (error) {
-      console.error('Failed to add to recently watched:', error);
-    }
+    await addHistory(details, details.number_of_seasons ? selectedSeason : undefined, details.number_of_seasons ? selectedEpisode : undefined);
   };
 
-  const toggleWatchlist = async () => {
+  const handleToggleWatchlist = async () => {
     if (!user || !currentProfile) {
       setShowAuthModal(true);
       return;
     }
-
     if (!details) return;
-
-    const watchlistRef = doc(db, 'users', user.uid, 'profiles', currentProfile.id, 'watchlist', details.id.toString());
-
-    try {
-      if (isInWatchlist) {
-        await deleteDoc(watchlistRef);
-        toast.success('Removed from watchlist');
-      } else {
-        await setDoc(watchlistRef, {
-          tmdbId: details.id.toString(),
-          type: details.title ? 'movie' : 'tv',
-          title: details.title || details.name,
-          posterPath: details.poster_path,
-          addedAt: new Date().toISOString(),
-        });
-        toast.success('Added to watchlist');
-      }
-    } catch (error: any) {
-      toast.error(error.message);
-    }
+    await toggleWatchlist(details);
   };
 
   const handlePlay = () => {
@@ -516,7 +463,7 @@ export default function Watch() {
                           ? 'bg-brand border-brand text-white w-14 shadow-lg' 
                           : 'bg-muted/30 border-border text-foreground hover:bg-muted/50 px-4'
                       }`}
-                      onClick={toggleWatchlist}
+                      onClick={handleToggleWatchlist}
                     >
                       <div className="flex-none flex items-center justify-center w-6 h-6">
                         {isInWatchlist ? <Check className="w-6 h-6" /> : <Plus className="w-6 h-6" />}
@@ -586,7 +533,7 @@ export default function Watch() {
                             ? 'bg-brand border-brand text-white w-8' 
                             : 'border-border text-muted-foreground hover:text-foreground px-2'
                         }`}
-                        onClick={toggleWatchlist}
+                        onClick={handleToggleWatchlist}
                       >
                         <div className="flex-none flex items-center justify-center w-4 h-4">
                           {isInWatchlist ? <Check className="w-4 h-4" /> : <Plus className="w-4 h-4" />}

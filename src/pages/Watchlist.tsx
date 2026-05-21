@@ -10,29 +10,13 @@ import { Link, useNavigate } from 'react-router-dom';
 import { useSettings } from '../hooks/useSettings';
 
 export default function Watchlist() {
-  const { user, currentProfile } = useAuth();
+  const { watchlist, isWatchlistLoading: loading } = useAuth();
   const { settings } = useSettings();
-  const [items, setItems] = useState<WatchlistItem[]>([]);
-  const [loading, setLoading] = useState(true);
   const navigate = useNavigate();
 
-  useEffect(() => {
-    if (!user || !currentProfile) return;
-
-    const watchlistRef = collection(db, 'users', user.uid, 'profiles', currentProfile.id, 'watchlist');
-    const q = query(watchlistRef, orderBy('addedAt', 'desc'));
-    
-    const unsubscribe = onSnapshot(q, (snapshot) => {
-      const watchlistData = snapshot.docs.map(doc => ({
-        id: doc.id,
-        ...doc.data()
-      })) as WatchlistItem[];
-      setItems(watchlistData);
-      setLoading(false);
-    });
-
-    return () => unsubscribe();
-  }, [user, currentProfile]);
+  const sortedItems = [...watchlist].sort(
+    (a, b) => new Date(b.addedAt).getTime() - new Date(a.addedAt).getTime()
+  );
 
   const handleSelect = (item: WatchlistItem) => {
     navigate(`/watch/${item.type}/${item.tmdbId}`);
@@ -57,9 +41,9 @@ export default function Watchlist() {
             <div key={i} className="aspect-[2/3] bg-muted rounded-md animate-pulse" />
           ))}
         </div>
-      ) : items.length > 0 ? (
+      ) : sortedItems.length > 0 ? (
         <div className={`grid ${gridClasses[settings.cardSize]} gap-4 md:gap-6`}>
-          {items.map((item) => (
+          {sortedItems.map((item) => (
             <MovieCard 
               key={item.id} 
               className="w-full h-full"

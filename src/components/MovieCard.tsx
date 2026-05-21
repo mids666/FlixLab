@@ -21,29 +21,17 @@ interface MovieCardProps {
 
 export default function MovieCard({ item, onSelect, onRemove, className }: MovieCardProps) {
   const [isHovered, setIsHovered] = useState(false);
-  const [isInWatchlist, setIsInWatchlist] = useState(false);
-  const { user, currentProfile, setShowAuthModal } = useAuth();
+  const { user, currentProfile, setShowAuthModal, watchlist, toggleWatchlist } = useAuth();
   const { settings } = useSettings();
   const navigate = useNavigate();
+
+  const isInWatchlist = watchlist.some(w => w.tmdbId === item.id.toString());
 
   const sizeClasses = {
     small: 'w-[100px] md:w-[150px]',
     medium: 'w-[140px] md:w-[200px]',
     large: 'w-[180px] md:w-[260px]'
   };
-
-  useEffect(() => {
-    if (!user || !currentProfile) return;
-
-    const watchlistRef = collection(db, 'users', user.uid, 'profiles', currentProfile.id, 'watchlist');
-    const q = query(watchlistRef, where('tmdbId', '==', item.id.toString()));
-    
-    const unsubscribe = onSnapshot(q, (snapshot) => {
-      setIsInWatchlist(!snapshot.empty);
-    });
-
-    return () => unsubscribe();
-  }, [user, currentProfile, item.id]);
 
   const handleSelect = (e?: React.MouseEvent) => {
     e?.stopPropagation();
@@ -56,32 +44,9 @@ export default function MovieCard({ item, onSelect, onRemove, className }: Movie
     if (onSelect) onSelect(item);
   };
 
-  const toggleWatchlist = async (e: React.MouseEvent) => {
+  const handleToggleWatchlist = async (e: React.MouseEvent) => {
     e.stopPropagation();
-    if (!user || !currentProfile) {
-      setShowAuthModal(true);
-      return;
-    }
-
-    const watchlistRef = doc(db, 'users', user.uid, 'profiles', currentProfile.id, 'watchlist', item.id.toString());
-
-    try {
-      if (isInWatchlist) {
-        await deleteDoc(watchlistRef);
-        toast.success('Removed from watchlist');
-      } else {
-        await setDoc(watchlistRef, {
-          tmdbId: item.id.toString(),
-          type: item.media_type || (item.title ? 'movie' : 'tv'),
-          title: item.title || item.name,
-          posterPath: item.poster_path,
-          addedAt: new Date().toISOString(),
-        });
-        toast.success('Added to watchlist');
-      }
-    } catch (error: any) {
-      toast.error(error.message);
-    }
+    await toggleWatchlist(item);
   };
 
   const getQuality = () => {
@@ -160,7 +125,7 @@ export default function MovieCard({ item, onSelect, onRemove, className }: Movie
               <Button 
                 size="icon" 
                 className="w-8 h-8 rounded-full border border-white/20 text-white bg-transparent hover:bg-white/10 hover:text-white"
-                onClick={toggleWatchlist}
+                onClick={handleToggleWatchlist}
               >
                 {isInWatchlist ? <Check className="w-4 h-4 text-brand" /> : <Plus className="w-4 h-4 text-white" />}
               </Button>

@@ -1,55 +1,18 @@
-import { useState, useEffect } from 'react';
 import { useAuth } from '../hooks/useAuth';
-import { collection, onSnapshot, query, orderBy, doc, deleteDoc } from 'firebase/firestore';
-import { db } from '../lib/firebase';
 import { RecentlyWatchedItem, TMDBItem } from '../types';
 import MovieCard from '../components/MovieCard';
-import { History, Play } from 'lucide-react';
+import { History } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Link, useNavigate } from 'react-router-dom';
-import { toast } from 'sonner';
 import { useSettings } from '../hooks/useSettings';
 
 export default function RecentlyWatched() {
-  const { user, currentProfile } = useAuth();
+  const { recentlyWatched: items, isRecentlyWatchedLoading: loading, removeFromRecentlyWatched } = useAuth();
   const { settings } = useSettings();
-  const [items, setItems] = useState<RecentlyWatchedItem[]>([]);
-  const [loading, setLoading] = useState(true);
   const navigate = useNavigate();
 
-  useEffect(() => {
-    if (!user || !currentProfile) return;
-
-    const recentlyWatchedRef = collection(db, 'users', user.uid, 'profiles', currentProfile.id, 'recentlyWatched');
-    const q = query(recentlyWatchedRef, orderBy('watchedAt', 'desc'));
-    
-    const unsubscribe = onSnapshot(q, (snapshot) => {
-      const recentlyWatchedData = snapshot.docs.map(doc => ({
-        id: doc.id,
-        ...doc.data()
-      })) as RecentlyWatchedItem[];
-      setItems(recentlyWatchedData);
-      setLoading(false);
-    });
-
-    return () => unsubscribe();
-  }, [user, currentProfile]);
-
   const handleRemove = async (item: TMDBItem) => {
-    if (!user || !currentProfile) return;
-
-    try {
-      // Find the document ID in the items array that matches this tmdbId
-      const watchedItem = items.find(i => i.tmdbId === item.id.toString());
-      if (!watchedItem) return;
-
-      const docRef = doc(db, 'users', user.uid, 'profiles', currentProfile.id, 'recentlyWatched', watchedItem.id);
-      await deleteDoc(docRef);
-      toast.success('Removed from history');
-    } catch (error: any) {
-      toast.error('Failed to remove from history');
-      console.error(error);
-    }
+    await removeFromRecentlyWatched(item.id.toString());
   };
 
   const gridClasses = {

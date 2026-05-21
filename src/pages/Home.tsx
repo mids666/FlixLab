@@ -7,8 +7,6 @@ import { Button } from '@/components/ui/button';
 import { Play, Info, Star, Lock, MoreHorizontal } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { useAuth } from '../hooks/useAuth';
-import { collection, query, orderBy, limit, getDocs } from 'firebase/firestore';
-import { db } from '../lib/firebase';
 import { 
   Dialog, 
   DialogContent, 
@@ -19,8 +17,14 @@ import {
 } from '@/components/ui/dialog';
 
 export default function Home() {
-  const { user, currentProfile, setShowAuthModal } = useAuth();
+  const { user, currentProfile, setShowAuthModal, recentlyWatched } = useAuth();
   const navigate = useNavigate();
+
+  // Create highly stable dependency key for latest watched movies & TV shows
+  // to avoid repeated network fetches when recentlyWatched state updates.
+  const latestWatchesKey = user && currentProfile 
+    ? `${recentlyWatched.find(h => h.type === 'movie')?.tmdbId || ''}_${recentlyWatched.find(h => h.type === 'tv')?.tmdbId || ''}`
+    : '';
   const [trending, setTrending] = useState<TMDBItem[]>([]);
   const [suggestedType, setSuggestedType] = useState<'movie' | 'tv'>('movie');
   const [suggestedMovies, setSuggestedMovies] = useState<TMDBItem[]>([]);
@@ -92,29 +96,22 @@ export default function Home() {
 
       setTrending(finalTrending);
       
-      // Personalization logic
+      // Personalization logic using cached memory/local-storage from useAuth
       let finalSuggestedMovies: TMDBItem[] = [];
       let finalSuggestedTV: TMDBItem[] = [];
 
       try {
-        if (user && currentProfile) {
-          const recentlyWatchedRef = collection(db, 'users', user.uid, 'profiles', currentProfile.id, 'recentlyWatched');
-          const q = query(recentlyWatchedRef, orderBy('watchedAt', 'desc'), limit(5));
-          const snapshot = await getDocs(q);
-          const history = snapshot.docs.map(doc => doc.data());
+        if (user && currentProfile && recentlyWatched.length > 0) {
+          const movieHistory = recentlyWatched.filter(h => h.type === 'movie');
+          const tvHistory = recentlyWatched.filter(h => h.type === 'tv');
 
-          if (history.length > 0) {
-            const movieHistory = history.filter(h => h.type === 'movie');
-            const tvHistory = history.filter(h => h.type === 'tv');
-
-            if (movieHistory.length > 0) {
-              const recs = await tmdbService.getRecommendations('movie', movieHistory[0].tmdbId);
-              finalSuggestedMovies = recs.filter((item: any) => item.vote_average > 7).slice(0, 5);
-            }
-            if (tvHistory.length > 0) {
-              const recs = await tmdbService.getRecommendations('tv', tvHistory[0].tmdbId);
-              finalSuggestedTV = recs.filter((item: any) => item.vote_average > 7).slice(0, 5);
-            }
+          if (movieHistory.length > 0) {
+            const recs = await tmdbService.getRecommendations('movie', movieHistory[0].tmdbId);
+            finalSuggestedMovies = recs.filter((item: any) => item.vote_average > 7).slice(0, 5);
+          }
+          if (tvHistory.length > 0) {
+            const recs = await tmdbService.getRecommendations('tv', tvHistory[0].tmdbId);
+            finalSuggestedTV = recs.filter((item: any) => item.vote_average > 7).slice(0, 5);
           }
         }
       } catch (error) {
@@ -141,7 +138,7 @@ export default function Home() {
     };
 
     fetchData();
-  }, [user, currentProfile]);
+  }, [user, currentProfile, latestWatchesKey]);
 
   useEffect(() => {
     if (trending.length === 0) return;

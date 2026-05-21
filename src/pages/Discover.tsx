@@ -30,7 +30,7 @@ export default function Discover() {
   const location = useLocation();
   const searchParams = new URLSearchParams(location.search);
   const queryParam = searchParams.get('q') || '';
-  const { user, currentProfile, setShowAuthModal } = useAuth();
+  const { user, currentProfile, setShowAuthModal, watchlist, toggleWatchlist } = useAuth();
   const [items, setItems] = useState<TMDBItem[]>([]);
   const [genres, setGenres] = useState<GenreWithPoster[]>([]);
   const [loading, setLoading] = useState(true);
@@ -73,25 +73,10 @@ export default function Discover() {
   const [activeGenre, setActiveGenre] = useState<number | null>(null);
   const [featuredTrailer, setFeaturedTrailer] = useState<string | null>(null);
   const [openMenuId, setOpenMenuId] = useState<number | null>(null);
-  const [watchlistIds, setWatchlistIds] = useState<Set<string>>(new Set());
+
+  const watchlistIds = new Set(watchlist.map(w => w.tmdbId));
 
   const genreScrollRef = useRef<HTMLDivElement>(null);
-
-  // Fetch Watchlist
-  useEffect(() => {
-    if (!user || !currentProfile) {
-      setWatchlistIds(new Set());
-      return;
-    }
-
-    const watchlistRef = collection(db, 'users', user.uid, 'profiles', currentProfile.id, 'watchlist');
-    const unsubscribe = onSnapshot(watchlistRef, (snapshot) => {
-      const ids = new Set(snapshot.docs.map(doc => doc.data().tmdbId));
-      setWatchlistIds(ids);
-    });
-
-    return () => unsubscribe();
-  }, [user, currentProfile]);
 
   // Fetch Genres with Representative Posters
   useEffect(() => {
@@ -201,35 +186,9 @@ export default function Discover() {
     }
   }, [items, isSearching]);
 
-  const toggleWatchlist = async (e: React.MouseEvent, item: TMDBItem) => {
+  const handleToggleWatchlist = async (e: React.MouseEvent, item: TMDBItem) => {
     e.stopPropagation();
-    if (!user || !currentProfile) {
-      setShowAuthModal(true);
-      return;
-    }
-
-    const id = item.id.toString();
-    const isPresent = watchlistIds.has(id);
-    const watchlistRef = doc(db, 'users', user.uid, 'profiles', currentProfile.id, 'watchlist', id);
-
-    try {
-      if (isPresent) {
-        await deleteDoc(watchlistRef);
-        toast.success('Removed from watchlist');
-      } else {
-        const type = item.media_type || (item.title ? 'movie' : 'tv');
-        await setDoc(watchlistRef, {
-          tmdbId: id,
-          type,
-          title: item.title || item.name,
-          posterPath: item.poster_path,
-          addedAt: new Date().toISOString(),
-        });
-        toast.success('Added to watchlist');
-      }
-    } catch (error: any) {
-      toast.error(error.message);
-    }
+    await toggleWatchlist(item);
   };
 
 
@@ -486,7 +445,7 @@ export default function Discover() {
                         className={`w-11 h-11 rounded-2xl border border-white/20 backdrop-blur-md transition-colors hover:text-white bg-transparent ${
                           watchlistIds.has(currentFeatured?.id.toString()) ? 'bg-brand border-brand text-white' : 'bg-white/10 hover:bg-white/20 text-white'
                         }`}
-                        onClick={(e) => toggleWatchlist(e, currentFeatured)}
+                        onClick={(e) => handleToggleWatchlist(e, currentFeatured)}
                       >
                         {watchlistIds.has(currentFeatured?.id.toString()) ? <Check className="w-4 h-4" /> : <Plus className="w-4 h-4" />}
                       </Button>
