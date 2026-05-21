@@ -187,6 +187,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     // Set up doc listeners (try online Firestore with automatic quota fallback)
     const userDocRef = doc(db, 'users', user.uid);
     const unsubscribeUser = onSnapshot(userDocRef, (docSnap) => {
+      setIsQuotaExceeded(false);
       if (docSnap.exists()) {
         const uData = docSnap.data() as UserData;
         setUserData(uData);
@@ -210,6 +211,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     const profilesRef = collection(db, 'users', user.uid, 'profiles');
     const qProfiles = query(profilesRef, orderBy('createdAt', 'asc'));
     const unsubscribeProfiles = onSnapshot(qProfiles, (snapshot) => {
+      setIsQuotaExceeded(false);
       if (!snapshot.empty) {
         const profilesData = snapshot.docs.map(doc => ({
           id: doc.id,
@@ -284,6 +286,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     // Subscribe online with sandbox fallback
     const wlRef = collection(db, 'users', user.uid, 'profiles', currentProfileId, 'watchlist');
     const unsubscribeWatchlist = onSnapshot(wlRef, (snapshot) => {
+      setIsQuotaExceeded(false);
       const wlData = snapshot.docs.map(docSnap => ({
         id: docSnap.id,
         ...docSnap.data()
@@ -300,6 +303,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     const rwRef = collection(db, 'users', user.uid, 'profiles', currentProfileId, 'recentlyWatched');
     const qRecently = query(rwRef, orderBy('watchedAt', 'desc'));
     const unsubscribeRecently = onSnapshot(qRecently, (snapshot) => {
+      setIsQuotaExceeded(false);
       const rwData = snapshot.docs.map(docSnap => ({
         id: docSnap.id,
         ...docSnap.data()
@@ -362,6 +366,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         themeColor: newProfile.themeColor,
         createdAt: newProfile.createdAt
       });
+      setIsQuotaExceeded(false);
     } catch (err: any) {
       if (err?.message?.includes('quota') || err?.code === 'resource-exhausted') {
         setIsQuotaExceeded(true);
@@ -396,6 +401,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         themeColor: updatedProfile.themeColor,
         createdAt: updatedProfile.createdAt || new Date().toISOString()
       });
+      setIsQuotaExceeded(false);
     } catch (err: any) {
       if (err?.message?.includes('quota') || err?.code === 'resource-exhausted') {
         setIsQuotaExceeded(true);
@@ -425,6 +431,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     const profileRef = doc(db, 'users', user.uid, 'profiles', profileId);
     try {
       await deleteDoc(profileRef);
+      setIsQuotaExceeded(false);
     } catch (err: any) {
       if (err?.message?.includes('quota') || err?.code === 'resource-exhausted') {
         setIsQuotaExceeded(true);
@@ -453,7 +460,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       toast.success('Removed from watchlist');
 
       const wlDocRef = doc(db, 'users', user.uid, 'profiles', currentProfileId, 'watchlist', tmdbIdStr);
-      deleteDoc(wlDocRef).catch((err) => {
+      deleteDoc(wlDocRef).then(() => {
+        setIsQuotaExceeded(false);
+      }).catch((err) => {
         if (err?.message?.includes('quota') || err?.code === 'resource-exhausted') {
           setIsQuotaExceeded(true);
         }
@@ -482,6 +491,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         title: newItem.title,
         posterPath: newItem.posterPath,
         addedAt: newItem.addedAt
+      }).then(() => {
+        setIsQuotaExceeded(false);
       }).catch((err) => {
         if (err?.message?.includes('quota') || err?.code === 'resource-exhausted') {
           setIsQuotaExceeded(true);
@@ -527,6 +538,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       watchedAt: newItem.watchedAt,
       ...(newItem.season !== undefined ? { season: newItem.season } : {}),
       ...(newItem.episode !== undefined ? { episode: newItem.episode } : {})
+    }).then(() => {
+      setIsQuotaExceeded(false);
     }).catch((err) => {
       if (err?.message?.includes('quota') || err?.code === 'resource-exhausted') {
         setIsQuotaExceeded(true);
@@ -545,7 +558,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     toast.success('Removed from history');
 
     const rwDocRef = doc(db, 'users', user.uid, 'profiles', currentProfileId, 'recentlyWatched', itemId);
-    deleteDoc(rwDocRef).catch((err) => {
+    deleteDoc(rwDocRef).then(() => {
+      setIsQuotaExceeded(false);
+    }).catch((err) => {
       if (err?.message?.includes('quota') || err?.code === 'resource-exhausted') {
         setIsQuotaExceeded(true);
       }
