@@ -5,6 +5,57 @@ import { auth, db } from '../lib/firebase';
 import { UserData, Profile, WatchlistItem, RecentlyWatchedItem } from '../types';
 import { toast } from 'sonner';
 
+export enum OperationType {
+  CREATE = 'create',
+  UPDATE = 'update',
+  DELETE = 'delete',
+  LIST = 'list',
+  GET = 'get',
+  WRITE = 'write',
+}
+
+export interface FirestoreErrorInfo {
+  error: string;
+  operationType: OperationType;
+  path: string | null;
+  authInfo: {
+    userId?: string | null;
+    email?: string | null;
+    emailVerified?: boolean | null;
+    isAnonymous?: boolean | null;
+    tenantId?: string | null;
+    providerInfo?: {
+      providerId?: string | null;
+      email?: string | null;
+    }[];
+  };
+}
+
+export function handleFirestoreError(error: any, operationType: OperationType, path: string | null) {
+  const errInfo: FirestoreErrorInfo = {
+    error: error?.message || String(error),
+    authInfo: {
+      userId: auth.currentUser?.uid,
+      email: auth.currentUser?.email,
+      emailVerified: auth.currentUser?.emailVerified,
+      isAnonymous: auth.currentUser?.isAnonymous,
+      tenantId: auth.currentUser?.tenantId,
+      providerInfo: auth.currentUser?.providerData?.map(provider => ({
+        providerId: provider.providerId,
+        email: provider.email,
+      })) || []
+    },
+    operationType,
+    path
+  };
+  console.error('Firestore Error Detailed Context:', errInfo);
+  
+  const friendlyMsg = error?.message || String(error);
+  toast.error(`Database Sync Error (${operationType}): ${friendlyMsg}`);
+  
+  throw new Error(JSON.stringify(errInfo));
+}
+
 interface AuthContextType {
   user: User | null;
   userData: UserData | null;
@@ -175,7 +226,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       if (error?.message?.includes('quota') || error?.code === 'resource-exhausted') {
         setIsQuotaExceeded(true);
       }
-      console.warn("Profiles collection live snapshot error (falling back to safely cached memory):", error);
+      handleFirestoreError(error, OperationType.LIST, `users/${user.uid}/profiles`);
     });
 
     return () => {
@@ -231,7 +282,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       if (error?.message?.includes('quota') || error?.code === 'resource-exhausted') {
         setIsQuotaExceeded(true);
       }
-      console.warn("Watchlist snapshot error (safely reading from local database):", error);
+      handleFirestoreError(error, OperationType.LIST, `users/${user.uid}/profiles/${currentProfileId}/watchlist`);
     });
 
     const rwRef = collection(db, 'users', user.uid, 'profiles', currentProfileId, 'recentlyWatched');
@@ -247,7 +298,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       if (error?.message?.includes('quota') || error?.code === 'resource-exhausted') {
         setIsQuotaExceeded(true);
       }
-      console.warn("Recently watched snapshot error (safely reading from local database):", error);
+      handleFirestoreError(error, OperationType.LIST, `users/${user.uid}/profiles/${currentProfileId}/recentlyWatched`);
     });
 
     return () => {
@@ -303,7 +354,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       if (err?.message?.includes('quota') || err?.code === 'resource-exhausted') {
         setIsQuotaExceeded(true);
       }
-      console.warn("Firestore add profile failed (using local sandbox sync):", err);
+      handleFirestoreError(err, OperationType.CREATE, `users/${user.uid}/profiles/${newProfile.id}`);
     }
   };
 
@@ -337,7 +388,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       if (err?.message?.includes('quota') || err?.code === 'resource-exhausted') {
         setIsQuotaExceeded(true);
       }
-      console.warn("Firestore update profile failed (using local sandbox sync):", err);
+      handleFirestoreError(err, OperationType.UPDATE, `users/${user.uid}/profiles/${profileId}`);
     }
   };
 
@@ -366,7 +417,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       if (err?.message?.includes('quota') || err?.code === 'resource-exhausted') {
         setIsQuotaExceeded(true);
       }
-      console.warn("Firestore delete profile failed (using local sandbox sync):", err);
+      handleFirestoreError(err, OperationType.DELETE, `users/${user.uid}/profiles/${profileId}`);
     }
   };
 

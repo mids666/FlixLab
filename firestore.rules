@@ -2,6 +2,13 @@ rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
     // ===============================================================
+    // Global Safety Net
+    // ===============================================================
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    // ===============================================================
     // Helper Functions
     // ===============================================================
     function isAuthenticated() {
@@ -13,58 +20,45 @@ service cloud.firestore {
     }
 
     function isValidUser(data) {
-      return data.keys().hasAll(['email', 'subscriptionStatus']) &&
-             data.email is string &&
-             data.subscriptionStatus in ['active', 'trialing', 'canceled', 'none'];
+      return data.keys().hasAll(['email']) && data.email is string;
     }
 
     function isValidProfile(data) {
-      return data.keys().hasAll(['name', 'avatar']) &&
-             data.name is string && data.name.size() > 0 && data.name.size() < 50 &&
-             data.avatar is string;
+      return data.keys().hasAll(['name']) && data.name is string;
     }
 
     function isValidWatchlistItem(data) {
-      return data.keys().hasAll(['tmdbId', 'type', 'title']) &&
-             data.tmdbId is string &&
-             data.type in ['movie', 'tv'] &&
-             data.title is string && data.title.size() > 0;
+      return data.keys().hasAll(['tmdbId', 'type']) &&
+             data.tmdbId is string && data.type is string;
     }
 
     function isValidRecentlyWatchedItem(data) {
-      return data.keys().hasAll(['tmdbId', 'type', 'title', 'watchedAt']) &&
-             data.tmdbId is string &&
-             data.type in ['movie', 'tv'] &&
-             data.title is string && data.title.size() > 0 &&
-             data.watchedAt is string;
+      return data.keys().hasAll(['tmdbId', 'type', 'watchedAt']) &&
+             data.tmdbId is string && data.type is string && data.watchedAt is string;
     }
 
     // ===============================================================
-    // Rules
+    // Collection Paths
     // ===============================================================
 
     match /users/{userId} {
       allow read: if isOwner(userId);
-      allow create: if isOwner(userId) && isValidUser(request.resource.data);
-      allow update: if isOwner(userId) && isValidUser(request.resource.data);
+      allow create, update: if isOwner(userId) && isValidUser(request.resource.data);
 
       match /profiles/{profileId} {
         allow read: if isOwner(userId);
-        allow create: if isOwner(userId) && isValidProfile(request.resource.data);
-        allow update: if isOwner(userId) && isValidProfile(request.resource.data);
+        allow create, update: if isOwner(userId) && isValidProfile(request.resource.data);
         allow delete: if isOwner(userId);
 
         match /watchlist/{itemId} {
           allow read: if isOwner(userId);
-          allow create: if isOwner(userId) && isValidWatchlistItem(request.resource.data);
-          allow update: if isOwner(userId) && isValidWatchlistItem(request.resource.data);
+          allow create, update: if isOwner(userId) && isValidWatchlistItem(request.resource.data);
           allow delete: if isOwner(userId);
         }
 
         match /recentlyWatched/{itemId} {
           allow read: if isOwner(userId);
-          allow create: if isOwner(userId) && isValidRecentlyWatchedItem(request.resource.data);
-          allow update: if isOwner(userId) && isValidRecentlyWatchedItem(request.resource.data);
+          allow create, update: if isOwner(userId) && isValidRecentlyWatchedItem(request.resource.data);
           allow delete: if isOwner(userId);
         }
       }
