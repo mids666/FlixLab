@@ -32,6 +32,8 @@ export interface FirestoreErrorInfo {
 }
 
 export function handleFirestoreError(error: any, operationType: OperationType, path: string | null) {
+  const isQuota = error?.message?.includes('quota') || error?.code === 'resource-exhausted';
+
   const errInfo: FirestoreErrorInfo = {
     error: error?.message || String(error),
     authInfo: {
@@ -51,9 +53,19 @@ export function handleFirestoreError(error: any, operationType: OperationType, p
   console.error('Firestore Error Detailed Context:', errInfo);
   
   const friendlyMsg = error?.message || String(error);
-  toast.error(`Database Sync Error (${operationType}): ${friendlyMsg}`);
-  
-  throw new Error(JSON.stringify(errInfo));
+  if (isQuota) {
+    toast.error('Local Sandbox Mode: Daily cloud database limit reached. Autosaving safely to your browser.', {
+      id: 'firestore_quota_limit_alert',
+      duration: 6000,
+    });
+  } else {
+    toast.error(`Database Sync Error (${operationType}): ${friendlyMsg}`);
+  }
+
+  // Prevent throwing uncaught errors on background real-time subscriptions or on quota limits
+  if (operationType !== OperationType.LIST && !isQuota) {
+    throw new Error(JSON.stringify(errInfo));
+  }
 }
 
 interface AuthContextType {

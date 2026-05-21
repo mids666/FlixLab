@@ -1,13 +1,43 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
 import Navbar from './Navbar';
 import AuthModal from './AuthModal';
+import { useAuth } from '../hooks/useAuth';
 
 export default function Layout({ children }: { children: React.ReactNode }) {
+  const { isQuotaExceeded } = useAuth();
+  const [isBannerDismissed, setIsBannerDismissed] = useState(false);
+
   return (
-    <div className="min-h-screen bg-background text-foreground transition-colors duration-300 selection:bg-brand selection:text-white">
+    <div className="min-h-screen bg-background text-foreground transition-colors duration-300 selection:bg-brand selection:text-white pb-safe">
       <Navbar />
       <AuthModal />
+      
+      {isQuotaExceeded && !isBannerDismissed && (
+        <div className="fixed top-[72px] inset-x-0 z-40 bg-amber-950/90 backdrop-blur-md border-b border-amber-500/30 text-amber-200 py-3 px-4 text-xs md:text-sm flex items-center justify-between gap-4 shadow-xl transition-all duration-300">
+          <div className="flex items-center gap-2.5 max-w-5xl mx-auto w-full justify-center">
+            <span className="flex-none bg-amber-500/20 text-amber-400 p-1.5 rounded-md">
+              <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+              </svg>
+            </span>
+            <p className="font-medium text-center balance leading-relaxed">
+              <strong className="text-amber-400 font-extrabold mr-1">Local Sandbox Mode Active:</strong>
+              FlixLab's cloud database reached its daily capacity. Your watchlist, history, and profiles are fully saved locally on your device.
+            </p>
+          </div>
+          <button 
+            onClick={() => setIsBannerDismissed(true)} 
+            className="p-1 text-amber-400 hover:text-amber-200 hover:bg-amber-500/10 rounded-full transition-all focus:outline-none flex-none"
+            aria-label="Dismiss alert"
+          >
+            <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+            </svg>
+          </button>
+        </div>
+      )}
+
       <main className="pt-0">
         {children}
       </main>
