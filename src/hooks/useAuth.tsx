@@ -23,6 +23,9 @@ interface AuthContextType {
   addToRecentlyWatched: (item: any, season?: number, episode?: number) => Promise<void>;
   removeFromRecentlyWatched: (itemId: string) => Promise<void>;
   toggleWatchlist: (item: any) => Promise<void>;
+  addProfile: (name: string, avatar: string, themeColor: string) => Promise<void>;
+  updateProfile: (profileId: string, updates: Partial<Profile>) => Promise<void>;
+  deleteProfile: (profileId: string) => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -273,6 +276,100 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   };
 
+  const addProfile = async (name: string, avatar: string, themeColor: string) => {
+    if (!user) return;
+    const newProfile: Profile = {
+      id: 'p_' + Math.random().toString(36).substring(2, 11),
+      name: name.substring(0, 48),
+      avatar,
+      themeColor,
+      createdAt: new Date().toISOString()
+    };
+
+    const localProfilesKey = `local_profiles_${user.uid}`;
+    const updatedProfiles = [...profiles, newProfile];
+    setProfiles(updatedProfiles);
+    localStorage.setItem(localProfilesKey, JSON.stringify(updatedProfiles));
+
+    const profileRef = doc(db, 'users', user.uid, 'profiles', newProfile.id);
+    try {
+      await setDoc(profileRef, {
+        name: newProfile.name,
+        avatar: newProfile.avatar,
+        themeColor: newProfile.themeColor,
+        createdAt: newProfile.createdAt
+      });
+    } catch (err: any) {
+      if (err?.message?.includes('quota') || err?.code === 'resource-exhausted') {
+        setIsQuotaExceeded(true);
+      }
+      console.warn("Firestore add profile failed (using local sandbox sync):", err);
+    }
+  };
+
+  const updateProfile = async (profileId: string, updates: Partial<Profile>) => {
+    if (!user) return;
+    const existingProfile = profiles.find(p => p.id === profileId);
+    if (!existingProfile) return;
+
+    const updatedProfile = { ...existingProfile, ...updates };
+    const localProfilesKey = `local_profiles_${user.uid}`;
+    const updatedProfiles = profiles.map(p => p.id === profileId ? updatedProfile : p);
+    
+    setProfiles(updatedProfiles);
+    localStorage.setItem(localProfilesKey, JSON.stringify(updatedProfiles));
+
+    if (currentProfileId === profileId) {
+      // Force change to update any state tracking active colors
+      setCurrentProfileId(null);
+      setTimeout(() => setCurrentProfileId(profileId), 10);
+    }
+
+    const profileRef = doc(db, 'users', user.uid, 'profiles', profileId);
+    try {
+      await setDoc(profileRef, {
+        name: updatedProfile.name,
+        avatar: updatedProfile.avatar,
+        themeColor: updatedProfile.themeColor,
+        createdAt: updatedProfile.createdAt || new Date().toISOString()
+      });
+    } catch (err: any) {
+      if (err?.message?.includes('quota') || err?.code === 'resource-exhausted') {
+        setIsQuotaExceeded(true);
+      }
+      console.warn("Firestore update profile failed (using local sandbox sync):", err);
+    }
+  };
+
+  const deleteProfile = async (profileId: string) => {
+    if (!user) return;
+    const localProfilesKey = `local_profiles_${user.uid}`;
+    const updatedProfiles = profiles.filter(p => p.id !== profileId);
+    
+    setProfiles(updatedProfiles);
+    localStorage.setItem(localProfilesKey, JSON.stringify(updatedProfiles));
+
+    if (currentProfileId === profileId) {
+      const nextProfileId = updatedProfiles.length > 0 ? updatedProfiles[0].id : null;
+      setCurrentProfileId(nextProfileId);
+      if (nextProfileId) {
+        localStorage.setItem(`currentProfile_${user.uid}`, nextProfileId);
+      } else {
+        localStorage.removeItem(`currentProfile_${user.uid}`);
+      }
+    }
+
+    const profileRef = doc(db, 'users', user.uid, 'profiles', profileId);
+    try {
+      await deleteDoc(profileRef);
+    } catch (err: any) {
+      if (err?.message?.includes('quota') || err?.code === 'resource-exhausted') {
+        setIsQuotaExceeded(true);
+      }
+      console.warn("Firestore delete profile failed (using local sandbox sync):", err);
+    }
+  };
+
   const toggleWatchlist = async (item: any) => {
     if (!user || !currentProfileId) {
       setShowAuthModal(true);
@@ -411,7 +508,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       isRecentlyWatchedLoading,
       addToRecentlyWatched,
       removeFromRecentlyWatched,
-      toggleWatchlist
+      toggleWatchlist,
+      addProfile,
+      updateProfile,
+      deleteProfile
     }}>
       {children}
     </AuthContext.Provider>

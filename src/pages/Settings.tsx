@@ -22,7 +22,7 @@ import { useSettings } from '../hooks/useSettings';
 import { Switch } from '@/components/ui/switch';
 
 export default function Settings() {
-  const { user, userData, currentProfile } = useAuth();
+  const { user, userData, currentProfile, updateProfile } = useAuth();
   const { settings, updateSetting } = useSettings();
   const [name, setName] = useState(currentProfile?.name || '');
   const [isUpdating, setIsUpdating] = useState(false);
@@ -42,8 +42,7 @@ export default function Settings() {
     if (!user || !currentProfile) return;
     setIsUpdating(true);
     try {
-      const profileRef = doc(db, 'users', user.uid, 'profiles', currentProfile.id);
-      await updateDoc(profileRef, { name });
+      await updateProfile(currentProfile.id, { name });
       toast.success('Profile updated');
     } catch (error: any) {
       toast.error(error.message);
@@ -65,8 +64,7 @@ export default function Settings() {
     reader.onloadend = async () => {
       const base64String = reader.result as string;
       try {
-        const profileRef = doc(db, 'users', user.uid, 'profiles', currentProfile.id);
-        await updateDoc(profileRef, { avatar: base64String });
+        await updateProfile(currentProfile.id, { avatar: base64String });
         toast.success('Profile picture updated');
       } catch (error: any) {
         toast.error(error.message);

@@ -29,7 +29,7 @@ const THEME_COLORS = [
 ];
 
 export default function ProfileSelector() {
-  const { user, userData, profiles, setCurrentProfile } = useAuth();
+  const { user, userData, profiles, setCurrentProfile, addProfile } = useAuth();
   const [newProfileName, setNewProfileName] = useState('');
   const [selectedAvatar, setSelectedAvatar] = useState(AVATARS[0]);
   const [selectedColor, setSelectedColor] = useState(THEME_COLORS[0].value);
@@ -59,12 +59,7 @@ export default function ProfileSelector() {
     if (!user || !newProfileName) return;
     
     try {
-      await addDoc(collection(db, 'users', user.uid, 'profiles'), {
-        name: newProfileName,
-        avatar: selectedAvatar,
-        themeColor: selectedColor,
-        createdAt: serverTimestamp(),
-      });
+      await addProfile(newProfileName, selectedAvatar, selectedColor);
       setNewProfileName('');
       setIsAdding(false);
       toast.success('Profile created');
@@ -72,45 +67,6 @@ export default function ProfileSelector() {
       toast.error(error.message);
     }
   };
-
-  if (user && !user.emailVerified) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-background p-4">
-        <motion.div 
-          initial={{ opacity: 0, scale: 0.9 }}
-          animate={{ opacity: 1, scale: 1 }}
-          className="max-w-md w-full bg-card border border-border rounded-3xl p-8 text-center"
-        >
-          <div className="w-20 h-20 bg-brand/20 rounded-full flex items-center justify-center mx-auto mb-6">
-            <Mail className="w-10 h-10 text-brand" />
-          </div>
-          <h2 className="text-3xl font-bold text-foreground mb-4">Verify Your Email</h2>
-          <p className="text-muted-foreground mb-8">
-            We've sent a verification email to <span className="text-foreground font-bold">{user.email}</span>. 
-            Please verify your email to access FlixLab.
-          </p>
-          <div className="space-y-4">
-            <Button 
-              className="w-full bg-brand hover:bg-brand/80 h-14 text-lg font-bold gap-2 text-white"
-              onClick={handleResendVerification}
-              disabled={isResending}
-            >
-              {isResending ? 'Sending...' : 'Resend Verification Email'}
-            </Button>
-            <Button 
-              variant="ghost"
-              className="w-full text-muted-foreground hover:text-foreground gap-2"
-              onClick={handleSignOut}
-            >
-              <LogOut className="w-4 h-4" />
-              Sign Out / Back to Login
-            </Button>
-            <p className="text-xs text-muted-foreground">After verifying, please refresh this page or sign in again.</p>
-          </div>
-        </motion.div>
-      </div>
-    );
-  }
 
   return (
     <div className="min-h-screen bg-background flex flex-col items-center justify-center p-4 transition-colors duration-300">
