@@ -71,6 +71,17 @@ export default function Watch() {
   });
   const [episodes, setEpisodes] = useState<any[]>([]);
   const [selectedServer, setSelectedServer] = useState<ServerOption>('vidcore');
+  const [showBackupSuggestion, setShowBackupSuggestion] = useState(false);
+
+  useEffect(() => {
+    setShowBackupSuggestion(false);
+    if (isPlaying && selectedServer !== 'xpass') {
+      const timer = setTimeout(() => {
+        setShowBackupSuggestion(true);
+      }, 10000); // 10 seconds of loading
+      return () => clearTimeout(timer);
+    }
+  }, [isPlaying, selectedServer, selectedSeason, selectedEpisode, id]);
 
   const isInWatchlist = watchlist.some(w => w.tmdbId === id?.toString());
 
@@ -275,7 +286,7 @@ export default function Watch() {
 
         <div className="relative w-full h-[70vh] md:h-[90vh] bg-black">
           {isPlaying ? (
-            <div className="w-full h-full flex flex-col">
+            <div className="w-full h-full flex flex-col relative">
               <iframe
                 src={embedUrl}
                 className="w-full flex-1"
@@ -284,6 +295,44 @@ export default function Watch() {
                 frameBorder="0"
                 referrerPolicy="no-referrer"
               />
+
+              {showBackupSuggestion && (
+                <div className="absolute bottom-20 right-4 max-w-sm z-30 bg-amber-950/95 border border-amber-500/30 text-amber-200 p-4 rounded-xl shadow-2xl backdrop-blur-md transition-all duration-300 animate-in fade-in slide-in-from-bottom-5">
+                  <div className="flex gap-3">
+                    <span className="flex-none bg-amber-500/20 text-amber-400 p-2 rounded-lg self-start">
+                      <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 animate-bounce" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                      </svg>
+                    </span>
+                    <div className="space-y-1.5">
+                      <p className="font-bold text-xs uppercase tracking-wider text-amber-400">Video Loading Slow?</p>
+                      <p className="text-xs text-amber-200/90 leading-relaxed">
+                        If the video is taking too long to buffer, you can switch to the high-speed <strong>XPass Backup Server</strong>.
+                      </p>
+                      <div className="flex items-center gap-3 pt-1">
+                        <Button
+                          size="sm"
+                          className="h-7 px-3 rounded-md text-[11px] font-extrabold bg-amber-500 hover:bg-amber-600 text-black border-none"
+                          onClick={() => {
+                            setSelectedServer('xpass');
+                            setShowBackupSuggestion(false);
+                            toast.success("Switched to XPass Backup Server!");
+                          }}
+                        >
+                          Switch to XPass
+                        </Button>
+                        <button
+                          onClick={() => setShowBackupSuggestion(false)}
+                          className="text-[11px] font-bold text-amber-400/80 hover:text-amber-200 transition-all"
+                        >
+                          Dismiss
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              )}
+
               <div className="bg-muted/80 backdrop-blur-md p-4 flex items-center justify-center gap-4 border-t border-border">
                 <span className="text-xs font-bold text-muted-foreground uppercase tracking-widest flex items-center gap-2">
                   <Server className="w-3 h-3" />
@@ -367,23 +416,6 @@ export default function Watch() {
                     </DropdownMenuContent>
                   </DropdownMenu>
                 </div>
-
-                {['vidcore', 'videasy', 'peachify'].includes(selectedServer) && (
-                  <Button
-                    size="sm"
-                    variant="ghost"
-                    className="h-8 max-md:mt-1 hover:bg-amber-500/15 border border-amber-500/30 text-amber-500 rounded-full text-xs font-bold gap-1.5 transition-all text-left"
-                    onClick={() => {
-                      setSelectedServer('xpass');
-                      toast.success("Switched to XPass Backup Server!");
-                    }}
-                  >
-                    <svg xmlns="http://www.w3.org/2000/svg" className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
-                    </svg>
-                    Server Slow or Failed? Try XPass Backup
-                  </Button>
-                )}
 
                 <div className="h-4 w-[1px] bg-border mx-2 hidden md:block" />
 
