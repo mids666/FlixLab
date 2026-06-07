@@ -53,16 +53,23 @@ export default function MoviePlayer({ item, isOpen, onClose }: MoviePlayerProps)
   const [episodes, setEpisodes] = useState<any[]>([]);
   const [selectedServer, setSelectedServer] = useState<ServerOption>('vidcore');
   const [showBackupSuggestion, setShowBackupSuggestion] = useState(false);
+  const [isVideoActive, setIsVideoActive] = useState(false);
 
   useEffect(() => {
+    setIsVideoActive(false);
     setShowBackupSuggestion(false);
-    if (isPlaying && selectedServer !== 'xpass') {
+  }, [selectedServer, selectedSeason, selectedEpisode, item?.id]);
+
+  useEffect(() => {
+    if (isPlaying && selectedServer !== 'xpass' && !isVideoActive) {
       const timer = setTimeout(() => {
-        setShowBackupSuggestion(true);
-      }, 10000); // 10 seconds of loading
+        if (!isVideoActive) {
+          setShowBackupSuggestion(true);
+        }
+      }, 5000); // 5 seconds of loading
       return () => clearTimeout(timer);
     }
-  }, [isPlaying, selectedServer, selectedSeason, selectedEpisode, item?.id]);
+  }, [isPlaying, selectedServer, isVideoActive]);
 
   useEffect(() => {
     if (item?.id) {
@@ -120,6 +127,40 @@ export default function MoviePlayer({ item, isOpen, onClose }: MoviePlayerProps)
     const handleMessage = (event: MessageEvent) => {
       const nextEvents = ['next_episode', 'video_next', 'vidsrc_next', 'vidsrc_event_next', 'next', 'video_ended', 'ended'];
       const data = event.data;
+
+      // Detect if the video is loaded or started playing
+      let isActiveEvent = false;
+      if (typeof data === 'string') {
+        const lower = data.toLowerCase();
+        if (
+          lower.includes('play') || 
+          lower.includes('ready') || 
+          lower.includes('timeupdate') || 
+          lower.includes('loaded') || 
+          lower.includes('pause') ||
+          lower.includes('player')
+        ) {
+          isActiveEvent = true;
+        }
+      } else if (data && typeof data === 'object') {
+        try {
+          const str = JSON.stringify(data).toLowerCase();
+          if (
+            str.includes('play') || 
+            str.includes('ready') || 
+            str.includes('timeupdate') || 
+            str.includes('loaded') || 
+            str.includes('pause') ||
+            str.includes('player')
+          ) {
+            isActiveEvent = true;
+          }
+        } catch (e) {}
+      }
+
+      if (isActiveEvent) {
+        setIsVideoActive(true);
+      }
 
       if (typeof data === 'string') {
         if (nextEvents.includes(data) || data.includes('next_episode') || data.includes('vidsrc_next')) {
@@ -242,6 +283,7 @@ export default function MoviePlayer({ item, isOpen, onClose }: MoviePlayerProps)
                   className="w-full flex-1"
                   allowFullScreen
                   frameBorder="0"
+                  onLoad={() => setIsVideoActive(true)}
                 />
 
                 {showBackupSuggestion && (
