@@ -33,7 +33,7 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { motion } from 'motion/react';
 
-type ServerOption = 'vidcore' | 'peachify' | 'videasy' | 'vidsrc' | 'vidlink' | '111movies' | 'vidfast' | 'vidnest';
+type ServerOption = 'vidcore' | 'peachify' | 'videasy' | 'vidsrc' | 'vidlink' | '111movies' | 'vidfast' | 'vidnest' | 'xpass';
 
 export default function Watch() {
   const { type, id } = useParams<{ type: string; id: string }>();
@@ -241,10 +241,15 @@ export default function Watch() {
       return type === 'movie'
         ? `https://111movies.net/movie/${id}`
         : `https://111movies.net/tv/${id}/${selectedSeason}/${selectedEpisode}`;
-    } else if (selectedServer === 'vidfast') {
+        } else if (selectedServer === 'vidfast') {
       return type === 'movie'
         ? `https://vidfast.pro/movie/${id}`
         : `https://vidfast.pro/tv/${id}/${selectedSeason}/${selectedEpisode}`;
+    } else if (selectedServer === 'xpass') {
+      const autostartParam = settings.autoplay ? 'true' : 'false';
+      return type === 'movie'
+        ? `https://play.xpass.top/e/movie/${id}?autostart=${autostartParam}`
+        : `https://play.xpass.top/e/tv/${id}/${selectedSeason}/${selectedEpisode}?autostart=${autostartParam}`;
     } else {
       return type === 'movie'
         ? `https://vidnest.fun/movie/${id}`
@@ -315,8 +320,8 @@ export default function Watch() {
                     <DropdownMenuTrigger asChild>
                       <Button
                         size="sm"
-                        variant={['vidsrc', 'vidlink', '111movies', 'vidfast', 'vidnest'].includes(selectedServer) ? 'default' : 'outline'}
-                        className={`h-8 px-4 rounded-full text-xs font-bold gap-2 ${['vidsrc', 'vidlink', '111movies', 'vidfast', 'vidnest'].includes(selectedServer) ? 'bg-foreground text-background hover:bg-foreground/90' : 'border-border text-muted-foreground hover:text-foreground'}`}
+                        variant={['vidsrc', 'vidlink', '111movies', 'vidfast', 'vidnest', 'xpass'].includes(selectedServer) ? 'default' : 'outline'}
+                        className={`h-8 px-4 rounded-full text-xs font-bold gap-2 ${['vidsrc', 'vidlink', '111movies', 'vidfast', 'vidnest', 'xpass'].includes(selectedServer) ? 'bg-foreground text-background hover:bg-foreground/90' : 'border-border text-muted-foreground hover:text-foreground'}`}
                       >
                         Additional Servers
                         <ChevronDown className="w-3 h-3" />
@@ -353,9 +358,32 @@ export default function Watch() {
                       >
                         VidNest Server
                       </DropdownMenuItem>
+                      <DropdownMenuItem 
+                        className={`cursor-pointer focus:bg-brand focus:text-white ${selectedServer === 'xpass' ? 'bg-brand text-white' : ''}`}
+                        onClick={() => setSelectedServer('xpass')}
+                      >
+                        XPass Backup Server
+                      </DropdownMenuItem>
                     </DropdownMenuContent>
                   </DropdownMenu>
                 </div>
+
+                {['vidcore', 'videasy', 'peachify'].includes(selectedServer) && (
+                  <Button
+                    size="sm"
+                    variant="ghost"
+                    className="h-8 max-md:mt-1 hover:bg-amber-500/15 border border-amber-500/30 text-amber-500 rounded-full text-xs font-bold gap-1.5 transition-all text-left"
+                    onClick={() => {
+                      setSelectedServer('xpass');
+                      toast.success("Switched to XPass Backup Server!");
+                    }}
+                  >
+                    <svg xmlns="http://www.w3.org/2000/svg" className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                    </svg>
+                    Server Slow or Failed? Try XPass Backup
+                  </Button>
+                )}
 
                 <div className="h-4 w-[1px] bg-border mx-2 hidden md:block" />
 
