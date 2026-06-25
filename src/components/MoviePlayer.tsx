@@ -340,9 +340,9 @@ export default function MoviePlayer({ item, isOpen, onClose }: MoviePlayerProps)
                     </Button>
                     <Button
                       size="sm"
-                      variant={selectedServer === 'videasy' ? 'default' : 'outline'}
-                      className={`h-8 px-4 rounded-full text-xs font-bold ${selectedServer === 'videasy' ? 'bg-brand hover:bg-brand/80 text-white' : 'border-border text-muted-foreground hover:text-foreground'}`}
-                      onClick={() => setSelectedServer('videasy')}
+                      variant={selectedServer === 'vidlink' ? 'default' : 'outline'}
+                      className={`h-8 px-4 rounded-full text-xs font-bold ${selectedServer === 'vidlink' ? 'bg-brand hover:bg-brand/80 text-white' : 'border-border text-muted-foreground hover:text-foreground'}`}
+                      onClick={() => setSelectedServer('vidlink')}
                     >
                       Secondary Server
                     </Button>
@@ -359,8 +359,8 @@ export default function MoviePlayer({ item, isOpen, onClose }: MoviePlayerProps)
                       <DropdownMenuTrigger asChild>
                         <Button
                           size="sm"
-                          variant={['vidsrc', 'vidlink', '111movies', 'vidfast', 'vidnest', 'xpass'].includes(selectedServer) ? 'default' : 'outline'}
-                          className={`h-8 px-4 rounded-full text-xs font-bold gap-2 ${['vidsrc', 'vidlink', '111movies', 'vidfast', 'vidnest', 'xpass'].includes(selectedServer) ? 'bg-foreground text-background hover:bg-foreground/90' : 'border-border text-muted-foreground hover:text-foreground'}`}
+                          variant={['vidsrc', 'videasy', '111movies', 'vidfast', 'vidnest', 'xpass'].includes(selectedServer) ? 'default' : 'outline'}
+                          className={`h-8 px-4 rounded-full text-xs font-bold gap-2 ${['vidsrc', 'videasy', '111movies', 'vidfast', 'vidnest', 'xpass'].includes(selectedServer) ? 'bg-foreground text-background hover:bg-foreground/90' : 'border-border text-muted-foreground hover:text-foreground'}`}
                         >
                           Additional Servers
                           <ChevronDown className="w-3 h-3" />
@@ -374,10 +374,10 @@ export default function MoviePlayer({ item, isOpen, onClose }: MoviePlayerProps)
                           VidSrc Server
                         </DropdownMenuItem>
                         <DropdownMenuItem 
-                          className={`cursor-pointer focus:bg-brand focus:text-white ${selectedServer === 'vidlink' ? 'bg-brand text-white' : ''}`}
-                          onClick={() => setSelectedServer('vidlink')}
+                          className={`cursor-pointer focus:bg-brand focus:text-white ${selectedServer === 'videasy' ? 'bg-brand text-white' : ''}`}
+                          onClick={() => setSelectedServer('videasy')}
                         >
-                          VidLink Server
+                          VidEasy Server
                         </DropdownMenuItem>
                         <DropdownMenuItem 
                           className={`cursor-pointer focus:bg-brand focus:text-white ${selectedServer === '111movies' ? 'bg-brand text-white' : ''}`}
