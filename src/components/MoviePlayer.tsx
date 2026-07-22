@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import {
   DropdownMenu,
@@ -9,7 +9,7 @@ import {
 import { TMDBItem } from '../types';
 import { tmdbService, getImageUrl } from '../lib/tmdb';
 import { Button } from '@/components/ui/button';
-import { Play, X, Star, Calendar, Clock, User, Server, ChevronDown, ChevronLeft } from 'lucide-react';
+import { Play, X, Star, Calendar, Clock, User, Server, ChevronDown, ChevronLeft, Maximize } from 'lucide-react';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { motion } from 'motion/react';
@@ -54,6 +54,26 @@ export default function MoviePlayer({ item, isOpen, onClose }: MoviePlayerProps)
   const [selectedServer, setSelectedServer] = useState<ServerOption>('vidcore');
   const [showBackupSuggestion, setShowBackupSuggestion] = useState(false);
   const [isVideoActive, setIsVideoActive] = useState(false);
+  const playerContainerRef = useRef<HTMLDivElement>(null);
+
+  const handleToggleFullscreen = () => {
+    if (!playerContainerRef.current) return;
+    if (!document.fullscreenElement) {
+      if (playerContainerRef.current.requestFullscreen) {
+        playerContainerRef.current.requestFullscreen();
+      } else if ((playerContainerRef.current as any).webkitRequestFullscreen) {
+        (playerContainerRef.current as any).webkitRequestFullscreen();
+      } else if ((playerContainerRef.current as any).msRequestFullscreen) {
+        (playerContainerRef.current as any).msRequestFullscreen();
+      }
+    } else {
+      if (document.exitFullscreen) {
+        document.exitFullscreen();
+      } else if ((document as any).webkitExitFullscreen) {
+        (document as any).webkitExitFullscreen();
+      }
+    }
+  };
 
   useEffect(() => {
     setIsVideoActive(false);
@@ -277,12 +297,17 @@ export default function MoviePlayer({ item, isOpen, onClose }: MoviePlayerProps)
 
           <div className="relative w-full h-[60vh] md:h-[80vh] bg-black flex-none transition-colors">
             {isPlaying ? (
-              <div className="w-full h-full flex flex-col relative">
+              <div ref={playerContainerRef} className="w-full h-full flex flex-col relative bg-black">
                 <iframe
                   src={embedUrl}
-                  className="w-full flex-1"
+                  className="w-full flex-1 border-0"
                   allowFullScreen
-                  frameBorder="0"
+                  // @ts-ignore
+                  webkitallowfullscreen="true"
+                  // @ts-ignore
+                  mozallowfullscreen="true"
+                  allow="autoplay *; fullscreen *; encrypted-media *; picture-in-picture *; accelerometer *; gyroscope *; screen-wake-lock *"
+                  referrerPolicy="no-referrer"
                   onLoad={() => setIsVideoActive(true)}
                 />
 
@@ -406,6 +431,19 @@ export default function MoviePlayer({ item, isOpen, onClose }: MoviePlayerProps)
                       </DropdownMenuContent>
                     </DropdownMenu>
                   </div>
+
+                  <div className="h-4 w-[1px] bg-border mx-2 hidden md:block" />
+
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    className="h-8 px-3 rounded-full text-xs font-bold gap-1.5 border-border text-muted-foreground hover:text-foreground hover:bg-white/10"
+                    onClick={handleToggleFullscreen}
+                    title="Toggle Fullscreen"
+                  >
+                    <Maximize className="w-3.5 h-3.5" />
+                    <span className="hidden sm:inline">Fullscreen</span>
+                  </Button>
                 </div>
               </div>
             ) : (

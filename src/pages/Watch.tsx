@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { tmdbService, getImageUrl } from '../lib/tmdb';
 import { TMDBItem } from '../types';
@@ -22,7 +22,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { Play, Star, Calendar, Clock, User, Server, ChevronLeft, ChevronRight, Youtube, Plus, Check, SkipForward, ChevronDown, Download, ExternalLink } from 'lucide-react';
+import { Play, Star, Calendar, Clock, User, Server, ChevronLeft, ChevronRight, Youtube, Plus, Check, SkipForward, ChevronDown, Download, ExternalLink, Maximize } from 'lucide-react';
 import {
   Dialog,
   DialogContent,
@@ -73,6 +73,26 @@ export default function Watch() {
   const [selectedServer, setSelectedServer] = useState<ServerOption>('vidcore');
   const [showBackupSuggestion, setShowBackupSuggestion] = useState(false);
   const [isVideoActive, setIsVideoActive] = useState(false);
+  const playerContainerRef = useRef<HTMLDivElement>(null);
+
+  const handleToggleFullscreen = () => {
+    if (!playerContainerRef.current) return;
+    if (!document.fullscreenElement) {
+      if (playerContainerRef.current.requestFullscreen) {
+        playerContainerRef.current.requestFullscreen();
+      } else if ((playerContainerRef.current as any).webkitRequestFullscreen) {
+        (playerContainerRef.current as any).webkitRequestFullscreen();
+      } else if ((playerContainerRef.current as any).msRequestFullscreen) {
+        (playerContainerRef.current as any).msRequestFullscreen();
+      }
+    } else {
+      if (document.exitFullscreen) {
+        document.exitFullscreen();
+      } else if ((document as any).webkitExitFullscreen) {
+        (document as any).webkitExitFullscreen();
+      }
+    }
+  };
 
   useEffect(() => {
     setIsVideoActive(false);
@@ -327,13 +347,16 @@ export default function Watch() {
 
         <div className="relative w-full h-[70vh] md:h-[90vh] bg-black">
           {isPlaying ? (
-            <div className="w-full h-full flex flex-col relative">
+            <div ref={playerContainerRef} className="w-full h-full flex flex-col relative bg-black">
               <iframe
                 src={embedUrl}
-                className="w-full flex-1"
+                className="w-full flex-1 border-0"
                 allowFullScreen
-                allow="autoplay; fullscreen"
-                frameBorder="0"
+                // @ts-ignore
+                webkitallowfullscreen="true"
+                // @ts-ignore
+                mozallowfullscreen="true"
+                allow="autoplay *; fullscreen *; encrypted-media *; picture-in-picture *; accelerometer *; gyroscope *; screen-wake-lock *"
                 referrerPolicy="no-referrer"
                 onLoad={() => setIsVideoActive(true)}
               />
@@ -474,6 +497,17 @@ export default function Watch() {
                     <div className="h-4 w-[1px] bg-border mx-2 hidden md:block" />
                   </>
                 )}
+
+                <Button
+                  size="sm"
+                  variant="outline"
+                  className="h-8 px-3 rounded-full text-xs font-bold gap-1.5 border-border text-muted-foreground hover:text-foreground hover:bg-white/10"
+                  onClick={handleToggleFullscreen}
+                  title="Toggle Fullscreen"
+                >
+                  <Maximize className="w-3.5 h-3.5" />
+                  <span className="hidden sm:inline">Fullscreen</span>
+                </Button>
               </div>
             </div>
           ) : (
