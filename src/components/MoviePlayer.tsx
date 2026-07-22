@@ -9,7 +9,7 @@ import {
 import { TMDBItem } from '../types';
 import { tmdbService, getImageUrl } from '../lib/tmdb';
 import { Button } from '@/components/ui/button';
-import { Play, X, Star, Calendar, Clock, User, Server, ChevronDown, ChevronLeft, Maximize } from 'lucide-react';
+import { Play, X, Star, Calendar, Clock, User, Server, ChevronDown, ChevronLeft } from 'lucide-react';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { motion } from 'motion/react';
@@ -431,19 +431,6 @@ export default function MoviePlayer({ item, isOpen, onClose }: MoviePlayerProps)
                       </DropdownMenuContent>
                     </DropdownMenu>
                   </div>
-
-                  <div className="h-4 w-[1px] bg-border mx-2 hidden md:block" />
-
-                  <Button
-                    size="sm"
-                    variant="outline"
-                    className="h-8 px-3 rounded-full text-xs font-bold gap-1.5 border-border text-muted-foreground hover:text-foreground hover:bg-white/10"
-                    onClick={handleToggleFullscreen}
-                    title="Toggle Fullscreen"
-                  >
-                    <Maximize className="w-3.5 h-3.5" />
-                    <span className="hidden sm:inline">Fullscreen</span>
-                  </Button>
                 </div>
               </div>
             ) : (

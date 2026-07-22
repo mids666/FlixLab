@@ -22,7 +22,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { Play, Star, Calendar, Clock, User, Server, ChevronLeft, ChevronRight, Youtube, Plus, Check, SkipForward, ChevronDown, Download, ExternalLink, Maximize } from 'lucide-react';
+import { Play, Star, Calendar, Clock, User, Server, ChevronLeft, ChevronRight, Youtube, Plus, Check, SkipForward, ChevronDown, Download, ExternalLink } from 'lucide-react';
 import {
   Dialog,
   DialogContent,
@@ -494,20 +494,8 @@ export default function Watch() {
                       <SkipForward className="w-3 h-3 fill-current" />
                       Next Episode
                     </Button>
-                    <div className="h-4 w-[1px] bg-border mx-2 hidden md:block" />
                   </>
                 )}
-
-                <Button
-                  size="sm"
-                  variant="outline"
-                  className="h-8 px-3 rounded-full text-xs font-bold gap-1.5 border-border text-muted-foreground hover:text-foreground hover:bg-white/10"
-                  onClick={handleToggleFullscreen}
-                  title="Toggle Fullscreen"
-                >
-                  <Maximize className="w-3.5 h-3.5" />
-                  <span className="hidden sm:inline">Fullscreen</span>
-                </Button>
               </div>
             </div>
           ) : (
