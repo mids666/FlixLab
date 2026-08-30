@@ -49,11 +49,25 @@ export default function Browse() {
         finalSortBy = type === 'movie' ? 'primary_release_date.desc' : 'first_air_date.desc';
       }
 
-      const data = await tmdbService.getDiscover(type, selectedGenre?.toString(), finalSortBy, page);
-      setItems(data.results);
-      setTotalPages(Math.min(data.total_pages, 500)); // TMDB limit
-      setLoading(false);
-      window.scrollTo({ top: 0, behavior: 'smooth' });
+      try {
+        const tmdbPage1 = (page - 1) * 2 + 1;
+        const tmdbPage2 = (page - 1) * 2 + 2;
+
+        const [data1, data2] = await Promise.all([
+          tmdbService.getDiscover(type, selectedGenre?.toString(), finalSortBy, tmdbPage1),
+          tmdbService.getDiscover(type, selectedGenre?.toString(), finalSortBy, tmdbPage2)
+        ]);
+
+        const combinedResults = [...(data1.results || []), ...(data2.results || [])];
+        setItems(combinedResults);
+        const maxTmdbPages = Math.min(data1.total_pages || 1, 500);
+        setTotalPages(Math.max(1, Math.ceil(maxTmdbPages / 2)));
+      } catch (error) {
+        console.error('Failed to fetch browse items:', error);
+      } finally {
+        setLoading(false);
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+      }
     };
     fetchItems();
   }, [type, selectedGenre, sortBy, page]);
@@ -65,7 +79,7 @@ export default function Browse() {
 
   const gridClasses = {
     small: 'grid-cols-3 sm:grid-cols-5 md:grid-cols-6 lg:grid-cols-8 xl:grid-cols-10',
-    medium: 'grid-cols-2 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-7 xl:grid-cols-8',
+    medium: 'grid-cols-2 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-8 xl:grid-cols-8',
     large: 'grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6'
   };
 
@@ -119,7 +133,7 @@ export default function Browse() {
 
       {loading ? (
         <div className={`grid ${gridClasses[settings.cardSize]} gap-4 md:gap-6`}>
-          {Array.from({ length: 12 }).map((_, i) => (
+          {Array.from({ length: 40 }).map((_, i) => (
             <Skeleton key={i} className="aspect-[2/3] bg-muted rounded-md" />
           ))}
         </div>
