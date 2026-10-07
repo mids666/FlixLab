@@ -51,7 +51,7 @@ export default function MoviePlayer({ item, isOpen, onClose }: MoviePlayerProps)
     return 1;
   });
   const [episodes, setEpisodes] = useState<any[]>([]);
-  const [selectedServer, setSelectedServer] = useState<ServerOption>('xpass');
+  const [selectedServer, setSelectedServer] = useState<ServerOption>('vidcore');
   const [showBackupSuggestion, setShowBackupSuggestion] = useState(false);
   const [isVideoActive, setIsVideoActive] = useState(false);
   const playerContainerRef = useRef<HTMLDivElement>(null);
@@ -81,7 +81,7 @@ export default function MoviePlayer({ item, isOpen, onClose }: MoviePlayerProps)
   }, [selectedServer, selectedSeason, selectedEpisode, item?.id]);
 
   useEffect(() => {
-    if (isPlaying && !isVideoActive) {
+    if (isPlaying && selectedServer !== 'xpass' && !isVideoActive) {
       const timer = setTimeout(() => {
         if (!isVideoActive) {
           setShowBackupSuggestion(true);
@@ -257,8 +257,8 @@ export default function MoviePlayer({ item, isOpen, onClose }: MoviePlayerProps)
         : `https://vidfast.pro/tv/${item.id}/${selectedSeason}/${selectedEpisode}`;
     } else if (selectedServer === 'xpass') {
       return type === 'movie'
-        ? `https://play.xpass.top/e/movie/${item.id}?autostart=true`
-        : `https://play.xpass.top/e/tv/${item.id}/${selectedSeason}/${selectedEpisode}?autostart=true`;
+        ? `https://play.xpass.top/e/movie/${item.id}?autostart=false`
+        : `https://play.xpass.top/e/tv/${item.id}/${selectedSeason}/${selectedEpisode}?autostart=false`;
     } else {
       return type === 'movie'
         ? `https://vidnest.fun/movie/${item.id}`
@@ -322,28 +322,19 @@ export default function MoviePlayer({ item, isOpen, onClose }: MoviePlayerProps)
                       <div className="space-y-1.5">
                         <p className="font-bold text-xs uppercase tracking-wider text-amber-400">Video Loading Slow?</p>
                         <p className="text-xs text-amber-200/90 leading-relaxed">
-                          {selectedServer === 'xpass' ? (
-                            <>If the video is taking too long to buffer, you can switch to the backup <strong>VidCore Server</strong>.</>
-                          ) : (
-                            <>If the video is taking too long to buffer, you can switch to the high-speed <strong>XPass Server</strong>.</>
-                          )}
+                          If the video is taking too long to buffer, you can switch to the high-speed <strong>XPass Backup Server</strong>.
                         </p>
                         <div className="flex items-center gap-3 pt-1">
                           <Button
                             size="sm"
                             className="h-7 px-3 rounded-md text-[11px] font-extrabold bg-amber-500 hover:bg-amber-600 text-black border-none"
                             onClick={() => {
-                              if (selectedServer === 'xpass') {
-                                setSelectedServer('vidcore');
-                                toast.success("Switched to VidCore Server!");
-                              } else {
-                                setSelectedServer('xpass');
-                                toast.success("Switched to XPass Server!");
-                              }
+                              setSelectedServer('xpass');
                               setShowBackupSuggestion(false);
+                              toast.success("Switched to XPass Backup Server!");
                             }}
                           >
-                            {selectedServer === 'xpass' ? 'Switch to VidCore' : 'Switch to XPass'}
+                            Switch to XPass
                           </Button>
                           <button
                             onClick={() => setShowBackupSuggestion(false)}
@@ -365,20 +356,11 @@ export default function MoviePlayer({ item, isOpen, onClose }: MoviePlayerProps)
                   <div className="flex gap-2">
                     <Button
                       size="sm"
-                      variant={selectedServer === 'xpass' ? 'default' : 'outline'}
-                      className={`h-8 px-4 rounded-full text-xs font-bold gap-2 ${selectedServer === 'xpass' ? 'bg-brand hover:bg-brand/80 text-white' : 'border-border text-muted-foreground hover:text-foreground'}`}
-                      onClick={() => setSelectedServer('xpass')}
-                    >
-                      Primary Server (XPass)
-                      <span className="bg-white/20 text-[8px] px-1.5 py-0.5 rounded uppercase tracking-tighter">Fast</span>
-                    </Button>
-                    <Button
-                      size="sm"
                       variant={selectedServer === 'vidcore' ? 'default' : 'outline'}
                       className={`h-8 px-4 rounded-full text-xs font-bold gap-2 ${selectedServer === 'vidcore' ? 'bg-brand hover:bg-brand/80 text-white' : 'border-border text-muted-foreground hover:text-foreground'}`}
                       onClick={() => setSelectedServer('vidcore')}
                     >
-                      Secondary Server
+                      Primary Server
                       <span className="bg-white/20 text-[8px] px-1.5 py-0.5 rounded uppercase tracking-tighter">Ad-Free</span>
                     </Button>
                     <Button
@@ -387,6 +369,14 @@ export default function MoviePlayer({ item, isOpen, onClose }: MoviePlayerProps)
                       className={`h-8 px-4 rounded-full text-xs font-bold ${selectedServer === 'vidlink' ? 'bg-brand hover:bg-brand/80 text-white' : 'border-border text-muted-foreground hover:text-foreground'}`}
                       onClick={() => setSelectedServer('vidlink')}
                     >
+                      Secondary Server
+                    </Button>
+                    <Button
+                      size="sm"
+                      variant={selectedServer === 'peachify' ? 'default' : 'outline'}
+                      className={`h-8 px-4 rounded-full text-xs font-bold ${selectedServer === 'peachify' ? 'bg-brand hover:bg-brand/80 text-white' : 'border-border text-muted-foreground hover:text-foreground'}`}
+                      onClick={() => setSelectedServer('peachify')}
+                    >
                       Alternative Server
                     </Button>
 
@@ -394,20 +384,14 @@ export default function MoviePlayer({ item, isOpen, onClose }: MoviePlayerProps)
                       <DropdownMenuTrigger asChild>
                         <Button
                           size="sm"
-                          variant={['peachify', 'vidsrc', 'videasy', '111movies', 'vidfast', 'vidnest'].includes(selectedServer) ? 'default' : 'outline'}
-                          className={`h-8 px-4 rounded-full text-xs font-bold gap-2 ${['peachify', 'vidsrc', 'videasy', '111movies', 'vidfast', 'vidnest'].includes(selectedServer) ? 'bg-foreground text-background hover:bg-foreground/90' : 'border-border text-muted-foreground hover:text-foreground'}`}
+                          variant={['vidsrc', 'videasy', '111movies', 'vidfast', 'vidnest', 'xpass'].includes(selectedServer) ? 'default' : 'outline'}
+                          className={`h-8 px-4 rounded-full text-xs font-bold gap-2 ${['vidsrc', 'videasy', '111movies', 'vidfast', 'vidnest', 'xpass'].includes(selectedServer) ? 'bg-foreground text-background hover:bg-foreground/90' : 'border-border text-muted-foreground hover:text-foreground'}`}
                         >
                           Additional Servers
                           <ChevronDown className="w-3 h-3" />
                         </Button>
                       </DropdownMenuTrigger>
                       <DropdownMenuContent className="bg-card border-border text-foreground">
-                        <DropdownMenuItem 
-                          className={`cursor-pointer focus:bg-brand focus:text-white ${selectedServer === 'peachify' ? 'bg-brand text-white' : ''}`}
-                          onClick={() => setSelectedServer('peachify')}
-                        >
-                          Peachify Server
-                        </DropdownMenuItem>
                         <DropdownMenuItem 
                           className={`cursor-pointer focus:bg-brand focus:text-white ${selectedServer === 'vidsrc' ? 'bg-brand text-white' : ''}`}
                           onClick={() => setSelectedServer('vidsrc')}
@@ -437,6 +421,12 @@ export default function MoviePlayer({ item, isOpen, onClose }: MoviePlayerProps)
                           onClick={() => setSelectedServer('vidnest')}
                         >
                           VidNest Server
+                        </DropdownMenuItem>
+                        <DropdownMenuItem 
+                          className={`cursor-pointer focus:bg-brand focus:text-white ${selectedServer === 'xpass' ? 'bg-brand text-white' : ''}`}
+                          onClick={() => setSelectedServer('xpass')}
+                        >
+                          XPass Backup Server
                         </DropdownMenuItem>
                       </DropdownMenuContent>
                     </DropdownMenu>
