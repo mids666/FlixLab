@@ -337,10 +337,13 @@ export default function Watch() {
   );
 
   const getEmbedUrl = () => {
-    const autoplayParam = settings.autoplay ? '?autoplay=1' : '?autoplay=0';
+    // 4K servers (80 Sirius, 94 Tarazed, 87 Yildun, 84 Wezen, 88 Nashira) then HD servers
+    const serverOrder = '80,94,87,84,88,81,85,86,93,82,92,91';
+    const autoplay = settings.autoplay ? 1 : 0;
+    const query = `?autoplay=${autoplay}&servers=${serverOrder}`;
     return type === 'movie'
-      ? `https://bingeapi.st/embed/movie/${id}${autoplayParam}`
-      : `https://bingeapi.st/embed/tv/${id}/${playerTarget.season}/${playerTarget.episode}${autoplayParam}`;
+      ? `https://bingeapi.st/embed/movie/${id}${query}`
+      : `https://bingeapi.st/embed/tv/${id}/${playerTarget.season}/${playerTarget.episode}${query}`;
   };
 
   const embedUrl = getEmbedUrl();

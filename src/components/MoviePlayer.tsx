@@ -273,9 +273,12 @@ export default function MoviePlayer({ item, isOpen, onClose }: MoviePlayerProps)
   const type = item.media_type || (item.title ? 'movie' : 'tv');
 
   const getEmbedUrl = () => {
+    // 4K servers (80 Sirius, 94 Tarazed, 87 Yildun, 84 Wezen, 88 Nashira) then HD servers
+    const serverOrder = '80,94,87,84,88,81,85,86,93,82,92,91';
+    const query = `?autoplay=1&servers=${serverOrder}`;
     return type === 'movie'
-      ? `https://bingeapi.st/embed/movie/${item.id}`
-      : `https://bingeapi.st/embed/tv/${item.id}/${playerTarget.season}/${playerTarget.episode}`;
+      ? `https://bingeapi.st/embed/movie/${item.id}${query}`
+      : `https://bingeapi.st/embed/tv/${item.id}/${playerTarget.season}/${playerTarget.episode}${query}`;
   };
 
   const embedUrl = getEmbedUrl();
