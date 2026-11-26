@@ -13,13 +13,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
-import { Play, Star, Clock, User, Server, ChevronLeft, Youtube, Plus, Check, SkipForward, ChevronDown } from 'lucide-react';
+import { Play, Star, Clock, User, ChevronLeft, Youtube, Plus, Check, SkipForward } from 'lucide-react';
 import {
   Dialog,
   DialogContent,
@@ -27,8 +21,6 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { motion } from 'motion/react';
-
-type ServerOption = 'vidcore' | 'peachify' | 'videasy' | 'vidsrc' | 'vidlink' | '111movies' | 'vidfast' | 'vidnest' | 'xpass';
 
 export default function Watch() {
   const { type, id } = useParams<{ type: string; id: string }>();
@@ -64,47 +56,45 @@ export default function Watch() {
     return 1;
   });
   const [episodes, setEpisodes] = useState<any[]>([]);
-  const [selectedServer, setSelectedServer] = useState<ServerOption>('vidcore');
-  const [showBackupSuggestion, setShowBackupSuggestion] = useState(false);
-  const [isVideoActive, setIsVideoActive] = useState(false);
+  const [playerTarget, setPlayerTarget] = useState<{ season: number; episode: number; reloadKey: number }>({
+    season: selectedSeason,
+    episode: selectedEpisode,
+    reloadKey: 0,
+  });
   const playerContainerRef = useRef<HTMLDivElement>(null);
+  const selectedSeasonRef = useRef(selectedSeason);
+  const selectedEpisodeRef = useRef(selectedEpisode);
 
   useEffect(() => {
-    setIsVideoActive(false);
-    setShowBackupSuggestion(false);
-  }, [selectedServer, selectedSeason, selectedEpisode, id]);
+    selectedSeasonRef.current = selectedSeason;
+  }, [selectedSeason]);
 
   useEffect(() => {
-    if (isPlaying && selectedServer !== 'xpass' && !isVideoActive) {
-      const timer = setTimeout(() => {
-        if (!isVideoActive) {
-          setShowBackupSuggestion(true);
-        }
-      }, 5000);
-      return () => clearTimeout(timer);
-    }
-  }, [isPlaying, selectedServer, isVideoActive]);
+    selectedEpisodeRef.current = selectedEpisode;
+  }, [selectedEpisode]);
 
   const isInWatchlist = watchlist.some(w => w.tmdbId === id?.toString());
 
   useEffect(() => {
+    setIsPlaying(false);
     if (id) {
       const saved = localStorage.getItem(`last_watched_${id}`);
       if (saved) {
         try {
           const { season, episode } = JSON.parse(saved);
-          setSelectedSeason(season || 1);
-          setSelectedEpisode(episode || 1);
-        } catch (e) {
-          setSelectedSeason(1);
-          setSelectedEpisode(1);
-        }
-      } else {
-        setSelectedSeason(1);
-        setSelectedEpisode(1);
+          const s = season || 1;
+          const e = episode || 1;
+          setSelectedSeason(s);
+          setSelectedEpisode(e);
+          setPlayerTarget(prev => ({ season: s, episode: e, reloadKey: prev.reloadKey + 1 }));
+          return;
+        } catch (e) {}
       }
+      setSelectedSeason(1);
+      setSelectedEpisode(1);
+      setPlayerTarget(prev => ({ season: 1, episode: 1, reloadKey: prev.reloadKey + 1 }));
     }
-  }, [id]);
+  }, [id, type]);
 
   useEffect(() => {
     if (id && type) {
@@ -131,10 +121,11 @@ export default function Watch() {
     }
   }, [details, selectedSeason]);
 
-  const addToRecentlyWatched = async (episodeOverride?: number) => {
+  const addToRecentlyWatched = async (episodeOverride?: number, seasonOverride?: number) => {
     if (!user || !currentProfile || !details) return;
     const ep = episodeOverride ?? selectedEpisode;
-    await addHistory(details, details.number_of_seasons ? selectedSeason : undefined, details.number_of_seasons ? ep : undefined);
+    const season = seasonOverride ?? selectedSeason;
+    await addHistory(details, details.number_of_seasons ? season : undefined, details.number_of_seasons ? ep : undefined);
   };
 
   const handleToggleWatchlist = async () => {
@@ -146,7 +137,14 @@ export default function Watch() {
     await toggleWatchlist(details);
   };
 
+  const loadEpisodeInPlayer = (season: number, episode: number) => {
+    setSelectedSeason(season);
+    setSelectedEpisode(episode);
+    setPlayerTarget(prev => ({ season, episode, reloadKey: prev.reloadKey + 1 }));
+  };
+
   const handlePlay = () => {
+    setPlayerTarget(prev => ({ season: selectedSeason, episode: selectedEpisode, reloadKey: prev.reloadKey + 1 }));
     setIsPlaying(true);
     addToRecentlyWatched();
   };
@@ -165,11 +163,13 @@ export default function Watch() {
     const episodesInCurrentSeason = episodes.length;
     
     if (nextEpisodeNum <= episodesInCurrentSeason) {
-      setSelectedEpisode(nextEpisodeNum);
+      loadEpisodeInPlayer(selectedSeason, nextEpisodeNum);
+      addToRecentlyWatched(nextEpisodeNum, selectedSeason);
       scrollTo(0, 0);
     } else if (selectedSeason < details.number_of_seasons) {
-      setSelectedSeason(prev => prev + 1);
-      setSelectedEpisode(1);
+      const nextSeasonNum = selectedSeason + 1;
+      loadEpisodeInPlayer(nextSeasonNum, 1);
+      addToRecentlyWatched(1, nextSeasonNum);
       scrollTo(0, 0);
     } else {
       toast.info("You've reached the end of the show!");
@@ -181,41 +181,120 @@ export default function Watch() {
   };
 
   useEffect(() => {
-    const handleMessage = (event: MessageEvent) => {
-      const nextEvents = ['next_episode', 'video_next', 'vidsrc_next', 'vidsrc_event_next', 'next', 'video_ended', 'ended'];
-      const data = event.data;
+    const parsePositiveInt = (value: unknown): number | undefined => {
+      if (typeof value === 'number' && Number.isInteger(value) && value >= 1 && value <= 2000) {
+        return value;
+      }
+      if (typeof value === 'string' && /^\d+$/.test(value.trim())) {
+        const parsed = parseInt(value.trim(), 10);
+        if (parsed >= 1 && parsed <= 2000) return parsed;
+      }
+      return undefined;
+    };
 
-      let isActiveEvent = false;
-      if (typeof data === 'string') {
-        const lower = data.toLowerCase();
-        if (
-          lower.includes('play') || 
-          lower.includes('ready') || 
-          lower.includes('timeupdate') || 
-          lower.includes('loaded') || 
-          lower.includes('pause') ||
-          lower.includes('player')
-        ) {
-          isActiveEvent = true;
+    const extractSeasonEpisode = (payload: unknown): { season?: number; episode?: number } | null => {
+      if (!payload) return null;
+
+      if (typeof payload === 'string') {
+        const urlMatch = payload.match(/\/embed\/tv\/[^/]+\/(\d+)\/(\d+)/i) || payload.match(/\bS(\d+)E(\d+)\b/i);
+        if (urlMatch) {
+          return {
+            season: parsePositiveInt(urlMatch[1]),
+            episode: parsePositiveInt(urlMatch[2]),
+          };
         }
-      } else if (data && typeof data === 'object') {
         try {
-          const str = JSON.stringify(data).toLowerCase();
-          if (
-            str.includes('play') || 
-            str.includes('ready') || 
-            str.includes('timeupdate') || 
-            str.includes('loaded') || 
-            str.includes('pause') ||
-            str.includes('player')
-          ) {
-            isActiveEvent = true;
-          }
-        } catch (e) {}
+          const parsed = JSON.parse(payload);
+          return extractSeasonEpisode(parsed);
+        } catch {
+          return null;
+        }
       }
 
-      if (isActiveEvent) {
-        setIsVideoActive(true);
+      if (typeof payload !== 'object') return null;
+
+      const obj = payload as Record<string, unknown>;
+      const candidates: Record<string, unknown>[] = [obj];
+      for (const nestedKey of ['data', 'payload', 'detail', 'info', 'episodeInfo', 'meta']) {
+        const nested = obj[nestedKey];
+        if (nested && typeof nested === 'object') {
+          candidates.push(nested as Record<string, unknown>);
+        }
+      }
+
+      let foundSeason: number | undefined;
+      let foundEpisode: number | undefined;
+
+      for (const candidate of candidates) {
+        if (foundSeason === undefined) {
+          for (const key of ['season', 'seasonNumber', 'season_number', 'currentSeason', 'current_season', 'last_season_watched', 's']) {
+            const val = parsePositiveInt(candidate[key]);
+            if (val !== undefined) {
+              foundSeason = val;
+              break;
+            }
+          }
+        }
+        if (foundEpisode === undefined) {
+          for (const key of ['episode', 'episodeNumber', 'episode_number', 'currentEpisode', 'current_episode', 'last_episode_watched', 'ep', 'e']) {
+            const val = parsePositiveInt(candidate[key]);
+            if (val !== undefined) {
+              foundEpisode = val;
+              break;
+            }
+          }
+        }
+        if (typeof candidate.url === 'string' && (foundSeason === undefined || foundEpisode === undefined)) {
+          const urlMatch = candidate.url.match(/\/embed\/tv\/[^/]+\/(\d+)\/(\d+)/i);
+          if (urlMatch) {
+            foundSeason = foundSeason ?? parsePositiveInt(urlMatch[1]);
+            foundEpisode = foundEpisode ?? parsePositiveInt(urlMatch[2]);
+          }
+        }
+      }
+
+      if (foundSeason !== undefined || foundEpisode !== undefined) {
+        return { season: foundSeason, episode: foundEpisode };
+      }
+      return null;
+    };
+
+    const handleMessage = (event: MessageEvent) => {
+      if (
+        event.origin === window.location.origin ||
+        event.origin.includes('youtube.com') ||
+        event.origin.includes('youtube-nocookie.com')
+      ) {
+        return;
+      }
+
+      const nextEvents = ['next_episode', 'video_next', 'vidsrc_next', 'vidsrc_event_next', 'next'];
+      const data = event.data;
+
+      // Sync season/episode when the user switches episodes inside the bingeapi.st iframe
+      if (isPlaying && type === 'tv') {
+        const synced = extractSeasonEpisode(data);
+        if (synced && (synced.season !== undefined || synced.episode !== undefined)) {
+          const maxSeasons = details?.number_of_seasons;
+          const nextSeason =
+            synced.season !== undefined && (!maxSeasons || synced.season <= maxSeasons)
+              ? synced.season
+              : selectedSeasonRef.current;
+          const nextEpisode = synced.episode ?? selectedEpisodeRef.current;
+
+          if (nextSeason !== selectedSeasonRef.current || nextEpisode !== selectedEpisodeRef.current) {
+            setSelectedSeason(nextSeason);
+            setSelectedEpisode(nextEpisode);
+            if (id) {
+              localStorage.setItem(
+                `last_watched_${id}`,
+                JSON.stringify({ season: nextSeason, episode: nextEpisode })
+              );
+            }
+            addToRecentlyWatched(nextEpisode, nextSeason);
+          }
+          return;
+        }
       }
 
       if (typeof data === 'string') {
@@ -249,7 +328,7 @@ export default function Watch() {
 
     window.addEventListener('message', handleMessage);
     return () => window.removeEventListener('message', handleMessage);
-  }, [selectedEpisode, selectedSeason, episodes.length, details?.number_of_seasons]);
+  }, [isPlaying, type, id, selectedEpisode, selectedSeason, episodes.length, details?.number_of_seasons]);
 
   if (!details) return (
     <div className="h-screen w-screen flex items-center justify-center bg-background text-foreground">
@@ -258,47 +337,10 @@ export default function Watch() {
   );
 
   const getEmbedUrl = () => {
-    const params = settings.autoplay ? 'autoPlay=true&nextButton=false' : 'autoPlay=false&nextButton=false';
-    const tmdbParams = settings.autoplay ? '?autoplay=1' : '?autoplay=0';
-    
-    if (selectedServer === 'vidcore') {
-      return type === 'movie'
-        ? `https://vidcore.net/movie/${id}?${params}`
-        : `https://vidcore.net/tv/${id}/${selectedSeason}/${selectedEpisode}?${params}`;
-    } else if (selectedServer === 'peachify') {
-      return type === 'movie'
-        ? `https://peachify.top/embed/movie/${id}`
-        : `https://peachify.top/embed/tv/${id}/${selectedSeason}/${selectedEpisode}`;
-    } else if (selectedServer === 'videasy') {
-      return type === 'movie'
-        ? `https://player.videasy.net/movie/${id}${tmdbParams}`
-        : `https://player.videasy.net/tv/${id}/${selectedSeason}/${selectedEpisode}${tmdbParams}`;
-    } else if (selectedServer === 'vidsrc') {
-      return type === 'movie' 
-        ? `https://vidsrc.ru/movie/${id}${tmdbParams}`
-        : `https://vidsrc.ru/tv/${id}/${selectedSeason}/${selectedEpisode}${tmdbParams}`;
-    } else if (selectedServer === 'vidlink') {
-      return type === 'movie'
-        ? `https://vidlink.pro/movie/${id}${tmdbParams}`
-        : `https://vidlink.pro/tv/${id}/${selectedSeason}/${selectedEpisode}${tmdbParams}`;
-    } else if (selectedServer === '111movies') {
-      return type === 'movie'
-        ? `https://111movies.net/movie/${id}`
-        : `https://111movies.net/tv/${id}/${selectedSeason}/${selectedEpisode}`;
-    } else if (selectedServer === 'vidfast') {
-      return type === 'movie'
-        ? `https://vidfast.pro/movie/${id}`
-        : `https://vidfast.pro/tv/${id}/${selectedSeason}/${selectedEpisode}`;
-    } else if (selectedServer === 'xpass') {
-      const autostartParam = settings.autoplay ? 'true' : 'false';
-      return type === 'movie'
-        ? `https://play.xpass.top/e/movie/${id}?autostart=${autostartParam}`
-        : `https://play.xpass.top/e/tv/${id}/${selectedSeason}/${selectedEpisode}?autostart=${autostartParam}`;
-    } else {
-      return type === 'movie'
-        ? `https://vidnest.fun/movie/${id}`
-        : `https://vidnest.fun/tv/${id}/${selectedSeason}/${selectedEpisode}`;
-    }
+    const autoplayParam = settings.autoplay ? '?autoplay=1' : '?autoplay=0';
+    return type === 'movie'
+      ? `https://bingeapi.st/embed/movie/${id}${autoplayParam}`
+      : `https://bingeapi.st/embed/tv/${id}/${playerTarget.season}/${playerTarget.episode}${autoplayParam}`;
   };
 
   const embedUrl = getEmbedUrl();
@@ -321,6 +363,7 @@ export default function Watch() {
           {isPlaying ? (
             <div ref={playerContainerRef} className="w-full h-full flex flex-col relative bg-black">
               <iframe
+                key={`${type}-${id}-${playerTarget.reloadKey}`}
                 src={embedUrl}
                 className="w-full flex-1 border-0"
                 allowFullScreen
@@ -328,145 +371,30 @@ export default function Watch() {
                 webkitallowfullscreen="true"
                 // @ts-ignore
                 mozallowfullscreen="true"
-                allow="autoplay *; fullscreen *; encrypted-media *; picture-in-picture *; accelerometer *; gyroscope *; screen-wake-lock *"
-                referrerPolicy="no-referrer"
-                onLoad={() => setIsVideoActive(true)}
+                allow="autoplay; fullscreen; encrypted-media; picture-in-picture"
+                referrerPolicy="origin"
               />
 
-              {showBackupSuggestion && (
-                <div className="absolute bottom-20 right-4 max-w-sm z-30 bg-amber-950/95 border border-amber-500/30 text-amber-200 p-4 rounded-xl shadow-2xl backdrop-blur-md transition-all duration-300 animate-in fade-in slide-in-from-bottom-5">
-                  <div className="flex gap-3">
-                    <span className="flex-none bg-amber-500/20 text-amber-400 p-2 rounded-lg self-start">
-                      <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 animate-bounce" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
-                      </svg>
-                    </span>
-                    <div className="space-y-1.5">
-                      <p className="font-bold text-xs uppercase tracking-wider text-amber-400">Video Loading Slow?</p>
-                      <p className="text-xs text-amber-200/90 leading-relaxed">
-                        If the video is taking too long to buffer, you can switch to the high-speed <strong>XPass Backup Server</strong>.
-                      </p>
-                      <div className="flex items-center gap-3 pt-1">
-                        <Button
-                          size="sm"
-                          className="h-7 px-3 rounded-md text-[11px] font-extrabold bg-amber-500 hover:bg-amber-600 text-black border-none"
-                          onClick={() => {
-                            setSelectedServer('xpass');
-                            setShowBackupSuggestion(false);
-                            toast.success("Switched to XPass Backup Server!");
-                          }}
-                        >
-                          Switch to XPass
-                        </Button>
-                        <button
-                          onClick={() => setShowBackupSuggestion(false)}
-                          className="text-[11px] font-bold text-amber-400/80 hover:text-amber-200 transition-all"
-                        >
-                          Dismiss
-                        </button>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              )}
-
-              <div className="bg-muted/80 backdrop-blur-md p-4 flex items-center justify-center gap-4 border-t border-border">
-                <span className="text-xs font-bold text-muted-foreground uppercase tracking-widest flex items-center gap-2">
-                  <Server className="w-3 h-3" />
-                  Switch Server:
-                </span>
-                <div className="flex gap-2">
-                  <Button
-                    size="sm"
-                    variant={selectedServer === 'vidcore' ? 'default' : 'outline'}
-                    className={`h-8 px-4 rounded-full text-xs font-bold gap-2 ${selectedServer === 'vidcore' ? 'bg-brand hover:bg-brand/80 text-white' : 'border-border text-muted-foreground hover:text-foreground'}`}
-                    onClick={() => setSelectedServer('vidcore')}
-                  >
-                    Primary Server
-                    <span className="bg-white/20 text-[8px] px-1.5 py-0.5 rounded uppercase tracking-tighter">Ad-Free</span>
-                  </Button>
-                  <Button
-                    size="sm"
-                    variant={selectedServer === 'vidlink' ? 'default' : 'outline'}
-                    className={`h-8 px-4 rounded-full text-xs font-bold ${selectedServer === 'vidlink' ? 'bg-brand hover:bg-brand/80 text-white' : 'border-border text-muted-foreground hover:text-foreground'}`}
-                    onClick={() => setSelectedServer('vidlink')}
-                  >
-                    Secondary Server
-                  </Button>
-
-                  <DropdownMenu>
-                    <DropdownMenuTrigger asChild>
+              {type === 'tv' && (
+                <div className="bg-muted/80 backdrop-blur-md p-3 md:p-4 flex items-center justify-center gap-4 border-t border-border">
+                  <span className="text-xs font-bold text-muted-foreground uppercase tracking-widest">
+                    Season {selectedSeason} · Episode {selectedEpisode}
+                  </span>
+                  {hasNextEpisode() && (
+                    <>
+                      <div className="h-4 w-[1px] bg-border" />
                       <Button
                         size="sm"
-                        variant={['peachify', 'vidsrc', 'videasy', '111movies', 'vidfast', 'vidnest', 'xpass'].includes(selectedServer) ? 'default' : 'outline'}
-                        className={`h-8 px-4 rounded-full text-xs font-bold gap-2 ${['peachify', 'vidsrc', 'videasy', '111movies', 'vidfast', 'vidnest', 'xpass'].includes(selectedServer) ? 'bg-foreground text-background hover:bg-foreground/90' : 'border-border text-muted-foreground hover:text-foreground'}`}
+                        className="h-8 px-4 rounded-full text-xs font-bold bg-foreground text-background hover:bg-foreground/90 gap-2"
+                        onClick={handleNextEpisode}
                       >
-                        Additional Servers
-                        <ChevronDown className="w-3 h-3" />
+                        <SkipForward className="w-3 h-3 fill-current" />
+                        Next Episode
                       </Button>
-                    </DropdownMenuTrigger>
-                    <DropdownMenuContent className="bg-card border-border text-foreground">
-                      <DropdownMenuItem 
-                        className={`cursor-pointer focus:bg-brand focus:text-white ${selectedServer === 'peachify' ? 'bg-brand text-white' : ''}`}
-                        onClick={() => setSelectedServer('peachify')}
-                      >
-                        Peachify Server
-                      </DropdownMenuItem>
-                      <DropdownMenuItem 
-                        className={`cursor-pointer focus:bg-brand focus:text-white ${selectedServer === 'vidsrc' ? 'bg-brand text-white' : ''}`}
-                        onClick={() => setSelectedServer('vidsrc')}
-                      >
-                        VidSrc Server
-                      </DropdownMenuItem>
-                      <DropdownMenuItem 
-                        className={`cursor-pointer focus:bg-brand focus:text-white ${selectedServer === 'videasy' ? 'bg-brand text-white' : ''}`}
-                        onClick={() => setSelectedServer('videasy')}
-                      >
-                        VidEasy Server
-                      </DropdownMenuItem>
-                      <DropdownMenuItem 
-                        className={`cursor-pointer focus:bg-brand focus:text-white ${selectedServer === '111movies' ? 'bg-brand text-white' : ''}`}
-                        onClick={() => setSelectedServer('111movies')}
-                      >
-                        111Movies Server
-                      </DropdownMenuItem>
-                      <DropdownMenuItem 
-                        className={`cursor-pointer focus:bg-brand focus:text-white ${selectedServer === 'vidfast' ? 'bg-brand text-white' : ''}`}
-                        onClick={() => setSelectedServer('vidfast')}
-                      >
-                        VidFast Server
-                      </DropdownMenuItem>
-                      <DropdownMenuItem 
-                        className={`cursor-pointer focus:bg-brand focus:text-white ${selectedServer === 'vidnest' ? 'bg-brand text-white' : ''}`}
-                        onClick={() => setSelectedServer('vidnest')}
-                      >
-                        VidNest Server
-                      </DropdownMenuItem>
-                      <DropdownMenuItem 
-                        className={`cursor-pointer focus:bg-brand focus:text-white ${selectedServer === 'xpass' ? 'bg-brand text-white' : ''}`}
-                        onClick={() => setSelectedServer('xpass')}
-                      >
-                        XPass Backup Server
-                      </DropdownMenuItem>
-                    </DropdownMenuContent>
-                  </DropdownMenu>
+                    </>
+                  )}
                 </div>
-
-                <div className="h-4 w-[1px] bg-border mx-2 hidden md:block" />
-
-                {type === 'tv' && hasNextEpisode() && (
-                  <>
-                    <Button
-                      size="sm"
-                      className="h-8 px-4 rounded-full text-xs font-bold bg-foreground text-background hover:bg-foreground/90 gap-2"
-                      onClick={handleNextEpisode}
-                    >
-                      <SkipForward className="w-3 h-3 fill-current" />
-                      Next Episode
-                    </Button>
-                  </>
-                )}
-              </div>
+              )}
             </div>
           ) : (
             <div className="relative w-full h-full">
@@ -766,8 +694,11 @@ export default function Watch() {
                         <Select 
                           value={selectedSeason.toString()} 
                           onValueChange={(val) => {
-                            setSelectedSeason(parseInt(val));
-                            setSelectedEpisode(1);
+                            const newSeason = parseInt(val);
+                            loadEpisodeInPlayer(newSeason, 1);
+                            if (isPlaying) {
+                              addToRecentlyWatched(1, newSeason);
+                            }
                           }}
                         >
                           <SelectTrigger className="w-[140px] bg-muted border-border text-foreground font-bold transition-colors">
@@ -798,9 +729,10 @@ export default function Watch() {
                               : 'bg-muted/50 border border-transparent hover:bg-muted transition-colors'
                           }`}
                           onClick={() => {
-                            setSelectedEpisode(ep.episode_number);
+                            loadEpisodeInPlayer(selectedSeason, ep.episode_number);
                             setIsPlaying(true);
-                            addToRecentlyWatched(ep.episode_number);
+                            addToRecentlyWatched(ep.episode_number, selectedSeason);
+                            window.scrollTo({ top: 0, behavior: 'smooth' });
                           }}
                         >
                           <div className="relative w-32 aspect-video rounded-lg overflow-hidden flex-none bg-muted">
