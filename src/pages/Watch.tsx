@@ -340,7 +340,7 @@ export default function Watch() {
     // 4K servers (80 Sirius, 94 Tarazed, 87 Yildun, 84 Wezen, 88 Nashira) then HD servers
     const serverOrder = '80,94,87,84,88,81,85,86,93,82,92,91';
     const autoplay = settings.autoplay ? 1 : 0;
-    const query = `?autoplay=${autoplay}&servers=${serverOrder}`;
+    const query = `?autoplay=${autoplay}&right_click=0&servers=${serverOrder}`;
     return type === 'movie'
       ? `https://bingeapi.st/embed/movie/${id}${query}`
       : `https://bingeapi.st/embed/tv/${id}/${playerTarget.season}/${playerTarget.episode}${query}`;
@@ -364,7 +364,11 @@ export default function Watch() {
 
         <div className="relative w-full h-[70vh] md:h-[90vh] bg-black">
           {isPlaying ? (
-            <div ref={playerContainerRef} className="w-full h-full flex flex-col relative bg-black">
+            <div
+              ref={playerContainerRef}
+              onContextMenu={(e) => e.preventDefault()}
+              className="w-full h-full flex flex-col relative bg-black"
+            >
               <iframe
                 key={`${type}-${id}-${playerTarget.reloadKey}`}
                 src={embedUrl}
