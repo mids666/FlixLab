@@ -1,11 +1,17 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { Dialog, DialogContent } from '@/components/ui/dialog';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { TMDBItem } from '../types';
 import { tmdbService, getImageUrl } from '../lib/tmdb';
-import { Button, buttonVariants } from '@/components/ui/button';
-import { cn } from '@/lib/utils';
-import { Play, X, Star, Calendar, Clock, User, ChevronLeft } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { Play, X, Star, Calendar, Clock, User, Server, ChevronDown, ChevronLeft } from 'lucide-react';
 import { motion } from 'motion/react';
+import { toast } from 'sonner';
 
 interface MoviePlayerProps {
   item: TMDBItem | null;
@@ -13,8 +19,11 @@ interface MoviePlayerProps {
   onClose: () => void;
 }
 
+type ServerOption = 'watched' | 'vidcore' | 'peachify' | 'videasy' | 'vidsrc' | 'vidlink' | '111movies' | 'vidfast' | 'vidnest' | 'xpass';
+
 export default function MoviePlayer({ item, isOpen, onClose }: MoviePlayerProps) {
   const [details, setDetails] = useState<any>(null);
+  const [isPlaying, setIsPlaying] = useState(false);
   const [selectedSeason, setSelectedSeason] = useState<number>(() => {
     if (typeof window !== 'undefined' && item?.id) {
       const saved = localStorage.getItem(`last_watched_${item.id}`);
@@ -40,6 +49,26 @@ export default function MoviePlayer({ item, isOpen, onClose }: MoviePlayerProps)
     return 1;
   });
   const [episodes, setEpisodes] = useState<any[]>([]);
+  const [selectedServer, setSelectedServer] = useState<ServerOption>('watched');
+  const [showBackupSuggestion, setShowBackupSuggestion] = useState(false);
+  const [isVideoActive, setIsVideoActive] = useState(false);
+  const playerContainerRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    setIsVideoActive(false);
+    setShowBackupSuggestion(false);
+  }, [selectedServer, selectedSeason, selectedEpisode, item?.id]);
+
+  useEffect(() => {
+    if (isPlaying && selectedServer !== 'xpass' && !isVideoActive) {
+      const timer = setTimeout(() => {
+        if (!isVideoActive) {
+          setShowBackupSuggestion(true);
+        }
+      }, 5000);
+      return () => clearTimeout(timer);
+    }
+  }, [isPlaying, selectedServer, isVideoActive]);
 
   useEffect(() => {
     if (item?.id) {
@@ -64,6 +93,7 @@ export default function MoviePlayer({ item, isOpen, onClose }: MoviePlayerProps)
     if (item) {
       const type = item.media_type || (item.title ? 'movie' : 'tv');
       tmdbService.getDetails(type as 'movie' | 'tv', item.id.toString()).then(setDetails);
+      setIsPlaying(false);
     }
   }, [item]);
 
@@ -81,6 +111,89 @@ export default function MoviePlayer({ item, isOpen, onClose }: MoviePlayerProps)
   }, [selectedSeason, selectedEpisode, details?.id]);
 
   useEffect(() => {
+    const handleNextEpisodeInternal = () => {
+      const nextEpisodeNum = selectedEpisode + 1;
+      const episodesInCurrentSeason = episodes.length;
+      
+      if (episodesInCurrentSeason > 0 && nextEpisodeNum <= episodesInCurrentSeason) {
+        setSelectedEpisode(nextEpisodeNum);
+      } else if (details?.number_of_seasons && selectedSeason < details.number_of_seasons) {
+        setSelectedSeason(prev => prev + 1);
+        setSelectedEpisode(1);
+      }
+    };
+
+    const handleMessage = (event: MessageEvent) => {
+      const nextEvents = ['next_episode', 'video_next', 'vidsrc_next', 'vidsrc_event_next', 'next', 'video_ended', 'ended'];
+      const data = event.data;
+
+      let isActiveEvent = false;
+      if (typeof data === 'string') {
+        const lower = data.toLowerCase();
+        if (
+          lower.includes('play') || 
+          lower.includes('ready') || 
+          lower.includes('timeupdate') || 
+          lower.includes('loaded') || 
+          lower.includes('pause') ||
+          lower.includes('player')
+        ) {
+          isActiveEvent = true;
+        }
+      } else if (data && typeof data === 'object') {
+        try {
+          const str = JSON.stringify(data).toLowerCase();
+          if (
+            str.includes('play') || 
+            str.includes('ready') || 
+            str.includes('timeupdate') || 
+            str.includes('loaded') || 
+            str.includes('pause') ||
+            str.includes('player')
+          ) {
+            isActiveEvent = true;
+          }
+        } catch (e) {}
+      }
+
+      if (isActiveEvent) {
+        setIsVideoActive(true);
+      }
+
+      if (typeof data === 'string') {
+        if (nextEvents.includes(data) || data.includes('next_episode') || data.includes('vidsrc_next')) {
+          handleNextEpisodeInternal();
+          return;
+        }
+        try {
+          const parsed = JSON.parse(data);
+          if (
+            nextEvents.includes(parsed.event) || 
+            nextEvents.includes(parsed.type) || 
+            (parsed.event === 'vidsrc_event' && parsed.data === 'next_episode') ||
+            parsed.method === 'nextEpisode'
+          ) {
+            handleNextEpisodeInternal();
+          }
+        } catch (e) {
+        }
+      } else if (data && typeof data === 'object') {
+        if (
+          nextEvents.includes(data.event) || 
+          nextEvents.includes(data.type) || 
+          (data.event === 'vidsrc_event' && data.data === 'next_episode') ||
+          data.method === 'nextEpisode'
+        ) {
+          handleNextEpisodeInternal();
+        }
+      }
+    };
+
+    window.addEventListener('message', handleMessage);
+    return () => window.removeEventListener('message', handleMessage);
+  }, [selectedEpisode, selectedSeason, episodes.length, details?.number_of_seasons]);
+
+  useEffect(() => {
     if (details && details.number_of_seasons) {
       tmdbService.getTVShowEpisodes(details.id.toString(), selectedSeason).then(setEpisodes);
     }
@@ -90,13 +203,51 @@ export default function MoviePlayer({ item, isOpen, onClose }: MoviePlayerProps)
 
   const type = item.media_type || (item.title ? 'movie' : 'tv');
 
-  const getWatchedUrl = (episodeOverride?: number) => {
-    if (type === 'movie') {
-      return `https://watched.cx/movie/${item.id}`;
+  const getEmbedUrl = () => {
+    if (selectedServer === 'watched') {
+      return type === 'movie'
+        ? `https://watched.cx/movie/${item.id}`
+        : `https://watched.cx/tv/${item.id}?s=${selectedSeason}&e=${selectedEpisode}`;
+    } else if (selectedServer === 'vidcore') {
+      return type === 'movie'
+        ? `https://vidcore.net/movie/${item.id}?autoPlay=true&nextButton=false`
+        : `https://vidcore.net/tv/${item.id}/${selectedSeason}/${selectedEpisode}?autoPlay=true&nextButton=false`;
+    } else if (selectedServer === 'peachify') {
+      return type === 'movie'
+        ? `https://peachify.top/embed/movie/${item.id}`
+        : `https://peachify.top/embed/tv/${item.id}/${selectedSeason}/${selectedEpisode}`;
+    } else if (selectedServer === 'vidsrc') {
+      return type === 'movie' 
+        ? `https://vidsrc.ru/movie/${item.id}`
+        : `https://vidsrc.ru/tv/${item.id}/${selectedSeason}/${selectedEpisode}`;
+    } else if (selectedServer === 'videasy') {
+      return type === 'movie'
+        ? `https://player.videasy.net/movie/${item.id}`
+        : `https://player.videasy.net/tv/${item.id}/${selectedSeason}/${selectedEpisode}`;
+    } else if (selectedServer === 'vidlink') {
+      return type === 'movie'
+        ? `https://vidlink.pro/movie/${item.id}`
+        : `https://vidlink.pro/tv/${item.id}/${selectedSeason}/${selectedEpisode}`;
+    } else if (selectedServer === '111movies') {
+      return type === 'movie'
+        ? `https://111movies.net/movie/${item.id}`
+        : `https://111movies.net/tv/${item.id}/${selectedSeason}/${selectedEpisode}`;
+    } else if (selectedServer === 'vidfast') {
+      return type === 'movie'
+        ? `https://vidfast.pro/movie/${item.id}`
+        : `https://vidfast.pro/tv/${item.id}/${selectedSeason}/${selectedEpisode}`;
+    } else if (selectedServer === 'xpass') {
+      return type === 'movie'
+        ? `https://play.xpass.top/e/movie/${item.id}?autostart=false`
+        : `https://play.xpass.top/e/tv/${item.id}/${selectedSeason}/${selectedEpisode}?autostart=false`;
+    } else {
+      return type === 'movie'
+        ? `https://vidnest.fun/movie/${item.id}`
+        : `https://vidnest.fun/tv/${item.id}/${selectedSeason}/${selectedEpisode}`;
     }
-    const ep = episodeOverride ?? selectedEpisode;
-    return `https://watched.cx/tv/${item.id}?s=${selectedSeason}&e=${ep}`;
   };
+
+  const embedUrl = getEmbedUrl();
 
   return (
     <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
@@ -126,39 +277,182 @@ export default function MoviePlayer({ item, isOpen, onClose }: MoviePlayerProps)
           </Button>
 
           <div className="relative w-full h-[60vh] md:h-[80vh] bg-black flex-none transition-colors">
-            <div className="relative w-full h-full">
-              <img 
-                src={getImageUrl(details.backdrop_path, 'original') || undefined} 
-                className="w-full h-full object-cover opacity-40"
-                referrerPolicy="no-referrer"
-              />
-              <div className="absolute inset-0 bg-gradient-to-t from-background via-background/20 to-transparent" />
-              <div className="absolute inset-0 flex flex-col items-center justify-center gap-6 p-8 text-center">
-                <motion.h2 
-                  initial={{ opacity: 0, y: 20 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  className="text-5xl md:text-8xl font-black tracking-tighter text-white max-w-4xl"
-                >
-                  {details.title || details.name}
-                </motion.h2>
-                <motion.div
-                  initial={{ opacity: 0 }}
-                  animate={{ opacity: 1 }}
-                  transition={{ delay: 0.2 }}
-                >
-                  <a
-                    href={getWatchedUrl()}
-                    className={cn(
-                      buttonVariants({ size: 'lg' }),
-                      "bg-brand text-white dark:bg-white dark:text-black hover:bg-brand/80 dark:hover:bg-zinc-200 h-20 px-16 rounded-full text-2xl font-bold gap-4 shadow-2xl shadow-white/10"
-                    )}
-                  >
-                    <Play className="w-10 h-10 fill-current" />
-                    {type === 'tv' ? `Play S${selectedSeason} E${selectedEpisode}` : 'Watch Now'}
-                  </a>
-                </motion.div>
+            {isPlaying ? (
+              <div ref={playerContainerRef} className="w-full h-full flex flex-col relative bg-black">
+                <iframe
+                  src={embedUrl}
+                  className="w-full flex-1 border-0"
+                  allowFullScreen
+                  // @ts-ignore
+                  webkitallowfullscreen="true"
+                  // @ts-ignore
+                  mozallowfullscreen="true"
+                  allow="autoplay *; fullscreen *; encrypted-media *; picture-in-picture *; accelerometer *; gyroscope *; screen-wake-lock *"
+                  referrerPolicy="no-referrer"
+                  onLoad={() => setIsVideoActive(true)}
+                />
+
+                {showBackupSuggestion && (
+                  <div className="absolute bottom-20 right-4 max-w-sm z-30 bg-amber-950/95 border border-amber-500/30 text-amber-200 p-4 rounded-xl shadow-2xl backdrop-blur-md transition-all duration-300 animate-in fade-in slide-in-from-bottom-5">
+                    <div className="flex gap-3">
+                      <span className="flex-none bg-amber-500/20 text-amber-400 p-2 rounded-lg self-start">
+                        <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 animate-bounce" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                        </svg>
+                      </span>
+                      <div className="space-y-1.5">
+                        <p className="font-bold text-xs uppercase tracking-wider text-amber-400">Video Loading Slow?</p>
+                        <p className="text-xs text-amber-200/90 leading-relaxed">
+                          If the video is taking too long to buffer, you can switch to the high-speed <strong>XPass Backup Server</strong>.
+                        </p>
+                        <div className="flex items-center gap-3 pt-1">
+                          <Button
+                            size="sm"
+                            className="h-7 px-3 rounded-md text-[11px] font-extrabold bg-amber-500 hover:bg-amber-600 text-black border-none"
+                            onClick={() => {
+                              setSelectedServer('xpass');
+                              setShowBackupSuggestion(false);
+                              toast.success("Switched to XPass Backup Server!");
+                            }}
+                          >
+                            Switch to XPass
+                          </Button>
+                          <button
+                            onClick={() => setShowBackupSuggestion(false)}
+                            className="text-[11px] font-bold text-amber-400/80 hover:text-amber-200 transition-all"
+                          >
+                            Dismiss
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                <div className="bg-muted/80 backdrop-blur-md p-4 flex items-center justify-center gap-4 border-t border-border">
+                  <span className="text-xs font-bold text-muted-foreground uppercase tracking-widest flex items-center gap-2">
+                    <Server className="w-3 h-3" />
+                    Switch Server:
+                  </span>
+                  <div className="flex gap-2">
+                    <Button
+                      size="sm"
+                      variant={selectedServer === 'watched' ? 'default' : 'outline'}
+                      className={`h-8 px-4 rounded-full text-xs font-bold gap-2 ${selectedServer === 'watched' ? 'bg-brand hover:bg-brand/80 text-white' : 'border-border text-muted-foreground hover:text-foreground'}`}
+                      onClick={() => setSelectedServer('watched')}
+                    >
+                      Primary Server
+                    </Button>
+                    <Button
+                      size="sm"
+                      variant={selectedServer === 'vidcore' ? 'default' : 'outline'}
+                      className={`h-8 px-4 rounded-full text-xs font-bold gap-2 ${selectedServer === 'vidcore' ? 'bg-brand hover:bg-brand/80 text-white' : 'border-border text-muted-foreground hover:text-foreground'}`}
+                      onClick={() => setSelectedServer('vidcore')}
+                    >
+                      Secondary Server
+                      <span className="bg-white/20 text-[8px] px-1.5 py-0.5 rounded uppercase tracking-tighter">Ad-Free</span>
+                    </Button>
+                    <Button
+                      size="sm"
+                      variant={selectedServer === 'vidlink' ? 'default' : 'outline'}
+                      className={`h-8 px-4 rounded-full text-xs font-bold ${selectedServer === 'vidlink' ? 'bg-brand hover:bg-brand/80 text-white' : 'border-border text-muted-foreground hover:text-foreground'}`}
+                      onClick={() => setSelectedServer('vidlink')}
+                    >
+                      Alternative Server
+                    </Button>
+
+                    <DropdownMenu>
+                      <DropdownMenuTrigger asChild>
+                        <Button
+                          size="sm"
+                          variant={['peachify', 'vidsrc', 'videasy', '111movies', 'vidfast', 'vidnest', 'xpass'].includes(selectedServer) ? 'default' : 'outline'}
+                          className={`h-8 px-4 rounded-full text-xs font-bold gap-2 ${['peachify', 'vidsrc', 'videasy', '111movies', 'vidfast', 'vidnest', 'xpass'].includes(selectedServer) ? 'bg-foreground text-background hover:bg-foreground/90' : 'border-border text-muted-foreground hover:text-foreground'}`}
+                        >
+                          Additional Servers
+                          <ChevronDown className="w-3 h-3" />
+                        </Button>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent className="bg-card border-border text-foreground">
+                        <DropdownMenuItem 
+                          className={`cursor-pointer focus:bg-brand focus:text-white ${selectedServer === 'peachify' ? 'bg-brand text-white' : ''}`}
+                          onClick={() => setSelectedServer('peachify')}
+                        >
+                          Peachify Server
+                        </DropdownMenuItem>
+                        <DropdownMenuItem 
+                          className={`cursor-pointer focus:bg-brand focus:text-white ${selectedServer === 'vidsrc' ? 'bg-brand text-white' : ''}`}
+                          onClick={() => setSelectedServer('vidsrc')}
+                        >
+                          VidSrc Server
+                        </DropdownMenuItem>
+                        <DropdownMenuItem 
+                          className={`cursor-pointer focus:bg-brand focus:text-white ${selectedServer === 'videasy' ? 'bg-brand text-white' : ''}`}
+                          onClick={() => setSelectedServer('videasy')}
+                        >
+                          VidEasy Server
+                        </DropdownMenuItem>
+                        <DropdownMenuItem 
+                          className={`cursor-pointer focus:bg-brand focus:text-white ${selectedServer === '111movies' ? 'bg-brand text-white' : ''}`}
+                          onClick={() => setSelectedServer('111movies')}
+                        >
+                          111Movies Server
+                        </DropdownMenuItem>
+                        <DropdownMenuItem 
+                          className={`cursor-pointer focus:bg-brand focus:text-white ${selectedServer === 'vidfast' ? 'bg-brand text-white' : ''}`}
+                          onClick={() => setSelectedServer('vidfast')}
+                        >
+                          VidFast Server
+                        </DropdownMenuItem>
+                        <DropdownMenuItem 
+                          className={`cursor-pointer focus:bg-brand focus:text-white ${selectedServer === 'vidnest' ? 'bg-brand text-white' : ''}`}
+                          onClick={() => setSelectedServer('vidnest')}
+                        >
+                          VidNest Server
+                        </DropdownMenuItem>
+                        <DropdownMenuItem 
+                          className={`cursor-pointer focus:bg-brand focus:text-white ${selectedServer === 'xpass' ? 'bg-brand text-white' : ''}`}
+                          onClick={() => setSelectedServer('xpass')}
+                        >
+                          XPass Backup Server
+                        </DropdownMenuItem>
+                      </DropdownMenuContent>
+                    </DropdownMenu>
+                  </div>
+                </div>
               </div>
-            </div>
+            ) : (
+              <div className="relative w-full h-full">
+                <img 
+                  src={getImageUrl(details.backdrop_path, 'original') || undefined} 
+                  className="w-full h-full object-cover opacity-40"
+                  referrerPolicy="no-referrer"
+                />
+                <div className="absolute inset-0 bg-gradient-to-t from-background via-background/20 to-transparent" />
+                <div className="absolute inset-0 flex flex-col items-center justify-center gap-6 p-8 text-center">
+                  <motion.h2 
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    className="text-5xl md:text-8xl font-black tracking-tighter text-white max-w-4xl"
+                  >
+                    {details.title || details.name}
+                  </motion.h2>
+                  <motion.div
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    transition={{ delay: 0.2 }}
+                  >
+                    <Button 
+                      size="lg" 
+                      className="bg-brand text-white dark:bg-white dark:text-black hover:bg-brand/80 dark:hover:bg-zinc-200 h-20 px-16 rounded-full text-2xl font-bold gap-4 shadow-2xl shadow-white/10"
+                      onClick={() => setIsPlaying(true)}
+                    >
+                      <Play className="w-10 h-10 fill-current" />
+                      Watch Now
+                    </Button>
+                  </motion.div>
+                </div>
+              </div>
+            )}
           </div>
 
           <div className="flex-1 bg-background transition-colors">
@@ -259,9 +553,8 @@ export default function MoviePlayer({ item, isOpen, onClose }: MoviePlayerProps)
 
                   <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
                     {episodes.map((ep) => (
-                      <a
+                      <button
                         key={ep.id}
-                        href={getWatchedUrl(ep.episode_number)}
                         className={`flex flex-col gap-4 p-6 rounded-3xl transition-all text-left group/ep ${
                           selectedEpisode === ep.episode_number 
                             ? 'bg-brand/10 border-2 border-brand' 
@@ -269,12 +562,9 @@ export default function MoviePlayer({ item, isOpen, onClose }: MoviePlayerProps)
                         }`}
                         onClick={() => {
                           setSelectedEpisode(ep.episode_number);
-                          if (details?.id) {
-                            localStorage.setItem(`last_watched_${details.id}`, JSON.stringify({
-                              season: selectedSeason,
-                              episode: ep.episode_number
-                            }));
-                          }
+                          setIsPlaying(true);
+                          const scrollContainer = document.querySelector('[data-slot="dialog-content"]');
+                          if (scrollContainer) scrollContainer.scrollTo({ top: 0, behavior: 'smooth' });
                         }}
                       >
                         <div className="w-full aspect-video rounded-2xl overflow-hidden flex-none bg-muted relative">
@@ -300,7 +590,7 @@ export default function MoviePlayer({ item, isOpen, onClose }: MoviePlayerProps)
                             {ep.overview || "No overview available for this episode."}
                           </p>
                         </div>
-                      </a>
+                      </button>
                     ))}
                   </div>
                 </div>
@@ -344,6 +634,7 @@ export default function MoviePlayer({ item, isOpen, onClose }: MoviePlayerProps)
                         onClick={() => {
                           const type = rec.media_type || (rec.title ? 'movie' : 'tv');
                           tmdbService.getDetails(type as 'movie' | 'tv', rec.id.toString()).then(setDetails);
+                          setIsPlaying(false);
                           const scrollContainer = document.querySelector('[data-slot="dialog-content"]');
                           if (scrollContainer) scrollContainer.scrollTo({ top: 0, behavior: 'smooth' });
                         }}

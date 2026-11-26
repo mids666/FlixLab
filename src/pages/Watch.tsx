@@ -1,10 +1,11 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { tmdbService, getImageUrl } from '../lib/tmdb';
 import { useAuth } from '../hooks/useAuth';
 import MovieRow from '../components/MovieRow';
-import { Button, buttonVariants } from '@/components/ui/button';
-import { cn } from '@/lib/utils';
+import { Button } from '@/components/ui/button';
+import { toast } from 'sonner';
+import { useSettings } from '../hooks/useSettings';
 import {
   Select,
   SelectContent,
@@ -12,7 +13,13 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Play, Star, Clock, User, ChevronLeft, Youtube, Plus, Check } from 'lucide-react';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import { Play, Star, Clock, User, Server, ChevronLeft, Youtube, Plus, Check, SkipForward, ChevronDown } from 'lucide-react';
 import {
   Dialog,
   DialogContent,
@@ -21,12 +28,16 @@ import {
 } from "@/components/ui/dialog";
 import { motion } from 'motion/react';
 
+type ServerOption = 'watched' | 'vidcore' | 'peachify' | 'videasy' | 'vidsrc' | 'vidlink' | '111movies' | 'vidfast' | 'vidnest' | 'xpass';
+
 export default function Watch() {
   const { type, id } = useParams<{ type: string; id: string }>();
   const navigate = useNavigate();
   const { user, currentProfile, setShowAuthModal, watchlist, toggleWatchlist, addToRecentlyWatched: addHistory } = useAuth();
+  const { settings } = useSettings();
   
   const [details, setDetails] = useState<any>(null);
+  const [isPlaying, setIsPlaying] = useState(false);
   const [showTrailer, setShowTrailer] = useState(false);
   const [selectedSeason, setSelectedSeason] = useState<number>(() => {
     if (typeof window !== 'undefined' && id) {
@@ -53,6 +64,26 @@ export default function Watch() {
     return 1;
   });
   const [episodes, setEpisodes] = useState<any[]>([]);
+  const [selectedServer, setSelectedServer] = useState<ServerOption>('watched');
+  const [showBackupSuggestion, setShowBackupSuggestion] = useState(false);
+  const [isVideoActive, setIsVideoActive] = useState(false);
+  const playerContainerRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    setIsVideoActive(false);
+    setShowBackupSuggestion(false);
+  }, [selectedServer, selectedSeason, selectedEpisode, id]);
+
+  useEffect(() => {
+    if (isPlaying && selectedServer !== 'xpass' && !isVideoActive) {
+      const timer = setTimeout(() => {
+        if (!isVideoActive) {
+          setShowBackupSuggestion(true);
+        }
+      }, 5000);
+      return () => clearTimeout(timer);
+    }
+  }, [isPlaying, selectedServer, isVideoActive]);
 
   const isInWatchlist = watchlist.some(w => w.tmdbId === id?.toString());
 
@@ -115,9 +146,110 @@ export default function Watch() {
     await toggleWatchlist(details);
   };
 
+  const handlePlay = () => {
+    setIsPlaying(true);
+    addToRecentlyWatched();
+  };
+
+  const hasNextEpisode = () => {
+    if (!details || type !== 'tv') return false;
+    const nextEpisodeNum = selectedEpisode + 1;
+    const episodesInCurrentSeason = episodes.length;
+    if (episodesInCurrentSeason > 0 && nextEpisodeNum <= episodesInCurrentSeason) return true;
+    if (selectedSeason < details.number_of_seasons) return true;
+    return false;
+  };
+
+  const handleNextEpisode = () => {
+    const nextEpisodeNum = selectedEpisode + 1;
+    const episodesInCurrentSeason = episodes.length;
+    
+    if (nextEpisodeNum <= episodesInCurrentSeason) {
+      setSelectedEpisode(nextEpisodeNum);
+      scrollTo(0, 0);
+    } else if (selectedSeason < details.number_of_seasons) {
+      setSelectedSeason(prev => prev + 1);
+      setSelectedEpisode(1);
+      scrollTo(0, 0);
+    } else {
+      toast.info("You've reached the end of the show!");
+    }
+  };
+
   const handlePersonClick = (personId: number) => {
     navigate(`/person/${personId}`);
   };
+
+  useEffect(() => {
+    const handleMessage = (event: MessageEvent) => {
+      const nextEvents = ['next_episode', 'video_next', 'vidsrc_next', 'vidsrc_event_next', 'next', 'video_ended', 'ended'];
+      const data = event.data;
+
+      let isActiveEvent = false;
+      if (typeof data === 'string') {
+        const lower = data.toLowerCase();
+        if (
+          lower.includes('play') || 
+          lower.includes('ready') || 
+          lower.includes('timeupdate') || 
+          lower.includes('loaded') || 
+          lower.includes('pause') ||
+          lower.includes('player')
+        ) {
+          isActiveEvent = true;
+        }
+      } else if (data && typeof data === 'object') {
+        try {
+          const str = JSON.stringify(data).toLowerCase();
+          if (
+            str.includes('play') || 
+            str.includes('ready') || 
+            str.includes('timeupdate') || 
+            str.includes('loaded') || 
+            str.includes('pause') ||
+            str.includes('player')
+          ) {
+            isActiveEvent = true;
+          }
+        } catch (e) {}
+      }
+
+      if (isActiveEvent) {
+        setIsVideoActive(true);
+      }
+
+      if (typeof data === 'string') {
+        if (nextEvents.includes(data) || data.includes('next_episode') || data.includes('vidsrc_next')) {
+          handleNextEpisode();
+          return;
+        }
+        try {
+          const parsed = JSON.parse(data);
+          if (
+            nextEvents.includes(parsed.event) || 
+            nextEvents.includes(parsed.type) || 
+            (parsed.event === 'vidsrc_event' && parsed.data === 'next_episode') ||
+            parsed.method === 'nextEpisode'
+          ) {
+            handleNextEpisode();
+          }
+        } catch (e) {
+        }
+      } else if (data && typeof data === 'object') {
+        if (
+          nextEvents.includes(data.event) || 
+          nextEvents.includes(data.type) || 
+          (data.event === 'vidsrc_event' && data.data === 'next_episode') ||
+          data.method === 'nextEpisode'
+        ) {
+          handleNextEpisode();
+        }
+      }
+    };
+
+    window.addEventListener('message', handleMessage);
+    return () => window.removeEventListener('message', handleMessage);
+  }, [selectedEpisode, selectedSeason, episodes.length, details?.number_of_seasons]);
 
   if (!details) return (
     <div className="h-screen w-screen flex items-center justify-center bg-background text-foreground">
@@ -125,19 +257,60 @@ export default function Watch() {
     </div>
   );
 
-  const getWatchedUrl = (episodeOverride?: number) => {
-    if (type === 'movie') {
-      return `https://watched.cx/movie/${id}`;
+  const getEmbedUrl = () => {
+    const params = settings.autoplay ? 'autoPlay=true&nextButton=false' : 'autoPlay=false&nextButton=false';
+    const tmdbParams = settings.autoplay ? '?autoplay=1' : '?autoplay=0';
+    
+    if (selectedServer === 'watched') {
+      return type === 'movie'
+        ? `https://watched.cx/movie/${id}`
+        : `https://watched.cx/tv/${id}?s=${selectedSeason}&e=${selectedEpisode}`;
+    } else if (selectedServer === 'vidcore') {
+      return type === 'movie'
+        ? `https://vidcore.net/movie/${id}?${params}`
+        : `https://vidcore.net/tv/${id}/${selectedSeason}/${selectedEpisode}?${params}`;
+    } else if (selectedServer === 'peachify') {
+      return type === 'movie'
+        ? `https://peachify.top/embed/movie/${id}`
+        : `https://peachify.top/embed/tv/${id}/${selectedSeason}/${selectedEpisode}`;
+    } else if (selectedServer === 'videasy') {
+      return type === 'movie'
+        ? `https://player.videasy.net/movie/${id}${tmdbParams}`
+        : `https://player.videasy.net/tv/${id}/${selectedSeason}/${selectedEpisode}${tmdbParams}`;
+    } else if (selectedServer === 'vidsrc') {
+      return type === 'movie' 
+        ? `https://vidsrc.ru/movie/${id}${tmdbParams}`
+        : `https://vidsrc.ru/tv/${id}/${selectedSeason}/${selectedEpisode}${tmdbParams}`;
+    } else if (selectedServer === 'vidlink') {
+      return type === 'movie'
+        ? `https://vidlink.pro/movie/${id}${tmdbParams}`
+        : `https://vidlink.pro/tv/${id}/${selectedSeason}/${selectedEpisode}${tmdbParams}`;
+    } else if (selectedServer === '111movies') {
+      return type === 'movie'
+        ? `https://111movies.net/movie/${id}`
+        : `https://111movies.net/tv/${id}/${selectedSeason}/${selectedEpisode}`;
+    } else if (selectedServer === 'vidfast') {
+      return type === 'movie'
+        ? `https://vidfast.pro/movie/${id}`
+        : `https://vidfast.pro/tv/${id}/${selectedSeason}/${selectedEpisode}`;
+    } else if (selectedServer === 'xpass') {
+      const autostartParam = settings.autoplay ? 'true' : 'false';
+      return type === 'movie'
+        ? `https://play.xpass.top/e/movie/${id}?autostart=${autostartParam}`
+        : `https://play.xpass.top/e/tv/${id}/${selectedSeason}/${selectedEpisode}?autostart=${autostartParam}`;
+    } else {
+      return type === 'movie'
+        ? `https://vidnest.fun/movie/${id}`
+        : `https://vidnest.fun/tv/${id}/${selectedSeason}/${selectedEpisode}`;
     }
-    const ep = episodeOverride ?? selectedEpisode;
-    return `https://watched.cx/tv/${id}?s=${selectedSeason}&e=${ep}`;
   };
 
+  const embedUrl = getEmbedUrl();
   const trailer = details?.videos?.results?.find((v: any) => v.type === 'Trailer' && v.site === 'YouTube') || details?.videos?.results?.find((v: any) => v.site === 'YouTube');
 
   return (
     <div className="min-h-screen bg-background text-foreground transition-colors duration-300">
-      <div className="relative w-full flex flex-col">
+      <div className={`relative w-full flex flex-col ${isPlaying ? 'pt-20' : ''}`}>
         {/* Back Button */}
         <Button
           variant="ghost"
@@ -149,98 +322,301 @@ export default function Watch() {
         </Button>
 
         <div className="relative w-full h-[70vh] md:h-[90vh] bg-black">
-          <div className="relative w-full h-full">
-            <img 
-              src={getImageUrl(details.backdrop_path, 'original') || undefined} 
-              alt={details.title || details.name}
-              className="w-full h-full object-cover opacity-60"
-              referrerPolicy="no-referrer"
-            />
-            <div className="absolute inset-0 bg-black/30" />
-            <div className="absolute inset-0 bg-gradient-to-r from-black/60 via-transparent to-transparent" />
-            <div className="absolute inset-0 bg-gradient-to-t from-background via-background/20 to-transparent transition-colors duration-500" />
-            
-            <div className="absolute inset-0 flex flex-col justify-end pb-12 md:pb-24 px-4 md:px-12 max-w-7xl mx-auto z-10">
-              <div className="max-w-3xl space-y-6">
-                <div className="flex items-center gap-4 text-white drop-shadow-md font-bold">
-                  <div className="flex items-center gap-1 text-yellow-500 bg-black/30 px-2 py-0.5 rounded backdrop-blur-sm border border-white/10">
-                    <Star className="w-4 h-4 fill-current" />
-                    <span>{details.vote_average.toFixed(1)}</span>
-                  </div>
-                  <span className="text-white/80 transition-colors">
-                    {new Date(details.release_date || details.first_air_date).getFullYear()}
-                  </span>
-                  {details.runtime && (
-                    <span className="text-white/80 flex items-center gap-1 transition-colors">
-                      <Clock className="w-4 h-4" />
-                      {Math.floor(details.runtime / 60)}h {details.runtime % 60}m
+          {isPlaying ? (
+            <div ref={playerContainerRef} className="w-full h-full flex flex-col relative bg-black">
+              <iframe
+                src={embedUrl}
+                className="w-full flex-1 border-0"
+                allowFullScreen
+                // @ts-ignore
+                webkitallowfullscreen="true"
+                // @ts-ignore
+                mozallowfullscreen="true"
+                allow="autoplay *; fullscreen *; encrypted-media *; picture-in-picture *; accelerometer *; gyroscope *; screen-wake-lock *"
+                referrerPolicy="no-referrer"
+                onLoad={() => setIsVideoActive(true)}
+              />
+
+              {showBackupSuggestion && (
+                <div className="absolute bottom-20 right-4 max-w-sm z-30 bg-amber-950/95 border border-amber-500/30 text-amber-200 p-4 rounded-xl shadow-2xl backdrop-blur-md transition-all duration-300 animate-in fade-in slide-in-from-bottom-5">
+                  <div className="flex gap-3">
+                    <span className="flex-none bg-amber-500/20 text-amber-400 p-2 rounded-lg self-start">
+                      <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 animate-bounce" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                      </svg>
                     </span>
-                  )}
-                  <span className="px-2 py-0.5 bg-black/40 backdrop-blur-md rounded text-[10px] uppercase tracking-widest text-white border border-white/20 transition-colors">
-                    {type === 'movie' ? 'Movie' : 'TV Show'}
-                  </span>
+                    <div className="space-y-1.5">
+                      <p className="font-bold text-xs uppercase tracking-wider text-amber-400">Video Loading Slow?</p>
+                      <p className="text-xs text-amber-200/90 leading-relaxed">
+                        If the video is taking too long to buffer, you can switch to the high-speed <strong>XPass Backup Server</strong>.
+                      </p>
+                      <div className="flex items-center gap-3 pt-1">
+                        <Button
+                          size="sm"
+                          className="h-7 px-3 rounded-md text-[11px] font-extrabold bg-amber-500 hover:bg-amber-600 text-black border-none"
+                          onClick={() => {
+                            setSelectedServer('xpass');
+                            setShowBackupSuggestion(false);
+                            toast.success("Switched to XPass Backup Server!");
+                          }}
+                        >
+                          Switch to XPass
+                        </Button>
+                        <button
+                          onClick={() => setShowBackupSuggestion(false)}
+                          className="text-[11px] font-bold text-amber-400/80 hover:text-amber-200 transition-all"
+                        >
+                          Dismiss
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              <div className="bg-muted/80 backdrop-blur-md p-4 flex items-center justify-center gap-4 border-t border-border">
+                <span className="text-xs font-bold text-muted-foreground uppercase tracking-widest flex items-center gap-2">
+                  <Server className="w-3 h-3" />
+                  Switch Server:
+                </span>
+                <div className="flex gap-2">
+                  <Button
+                    size="sm"
+                    variant={selectedServer === 'watched' ? 'default' : 'outline'}
+                    className={`h-8 px-4 rounded-full text-xs font-bold gap-2 ${selectedServer === 'watched' ? 'bg-brand hover:bg-brand/80 text-white' : 'border-border text-muted-foreground hover:text-foreground'}`}
+                    onClick={() => setSelectedServer('watched')}
+                  >
+                    Primary Server
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant={selectedServer === 'vidcore' ? 'default' : 'outline'}
+                    className={`h-8 px-4 rounded-full text-xs font-bold gap-2 ${selectedServer === 'vidcore' ? 'bg-brand hover:bg-brand/80 text-white' : 'border-border text-muted-foreground hover:text-foreground'}`}
+                    onClick={() => setSelectedServer('vidcore')}
+                  >
+                    Secondary Server
+                    <span className="bg-white/20 text-[8px] px-1.5 py-0.5 rounded uppercase tracking-tighter">Ad-Free</span>
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant={selectedServer === 'vidlink' ? 'default' : 'outline'}
+                    className={`h-8 px-4 rounded-full text-xs font-bold ${selectedServer === 'vidlink' ? 'bg-brand hover:bg-brand/80 text-white' : 'border-border text-muted-foreground hover:text-foreground'}`}
+                    onClick={() => setSelectedServer('vidlink')}
+                  >
+                    Alternative Server
+                  </Button>
+
+                  <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                      <Button
+                        size="sm"
+                        variant={['peachify', 'vidsrc', 'videasy', '111movies', 'vidfast', 'vidnest', 'xpass'].includes(selectedServer) ? 'default' : 'outline'}
+                        className={`h-8 px-4 rounded-full text-xs font-bold gap-2 ${['peachify', 'vidsrc', 'videasy', '111movies', 'vidfast', 'vidnest', 'xpass'].includes(selectedServer) ? 'bg-foreground text-background hover:bg-foreground/90' : 'border-border text-muted-foreground hover:text-foreground'}`}
+                      >
+                        Additional Servers
+                        <ChevronDown className="w-3 h-3" />
+                      </Button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent className="bg-card border-border text-foreground">
+                      <DropdownMenuItem 
+                        className={`cursor-pointer focus:bg-brand focus:text-white ${selectedServer === 'peachify' ? 'bg-brand text-white' : ''}`}
+                        onClick={() => setSelectedServer('peachify')}
+                      >
+                        Peachify Server
+                      </DropdownMenuItem>
+                      <DropdownMenuItem 
+                        className={`cursor-pointer focus:bg-brand focus:text-white ${selectedServer === 'vidsrc' ? 'bg-brand text-white' : ''}`}
+                        onClick={() => setSelectedServer('vidsrc')}
+                      >
+                        VidSrc Server
+                      </DropdownMenuItem>
+                      <DropdownMenuItem 
+                        className={`cursor-pointer focus:bg-brand focus:text-white ${selectedServer === 'videasy' ? 'bg-brand text-white' : ''}`}
+                        onClick={() => setSelectedServer('videasy')}
+                      >
+                        VidEasy Server
+                      </DropdownMenuItem>
+                      <DropdownMenuItem 
+                        className={`cursor-pointer focus:bg-brand focus:text-white ${selectedServer === '111movies' ? 'bg-brand text-white' : ''}`}
+                        onClick={() => setSelectedServer('111movies')}
+                      >
+                        111Movies Server
+                      </DropdownMenuItem>
+                      <DropdownMenuItem 
+                        className={`cursor-pointer focus:bg-brand focus:text-white ${selectedServer === 'vidfast' ? 'bg-brand text-white' : ''}`}
+                        onClick={() => setSelectedServer('vidfast')}
+                      >
+                        VidFast Server
+                      </DropdownMenuItem>
+                      <DropdownMenuItem 
+                        className={`cursor-pointer focus:bg-brand focus:text-white ${selectedServer === 'vidnest' ? 'bg-brand text-white' : ''}`}
+                        onClick={() => setSelectedServer('vidnest')}
+                      >
+                        VidNest Server
+                      </DropdownMenuItem>
+                      <DropdownMenuItem 
+                        className={`cursor-pointer focus:bg-brand focus:text-white ${selectedServer === 'xpass' ? 'bg-brand text-white' : ''}`}
+                        onClick={() => setSelectedServer('xpass')}
+                      >
+                        XPass Backup Server
+                      </DropdownMenuItem>
+                    </DropdownMenuContent>
+                  </DropdownMenu>
                 </div>
 
-                <h1 className="text-4xl md:text-6xl font-black tracking-tighter text-white leading-[0.85] drop-shadow-2xl">
-                  {details.title || details.name}
-                </h1>
+                <div className="h-4 w-[1px] bg-border mx-2 hidden md:block" />
 
-                <p className="text-base text-white/90 leading-relaxed line-clamp-3 md:line-clamp-none max-w-2xl drop-shadow-xl font-medium">
-                  {details.overview}
-                </p>
-
-                <div className="flex flex-wrap items-center gap-4 pt-4">
-                  <a
-                    href={getWatchedUrl()}
-                    onClick={() => addToRecentlyWatched()}
-                    className={cn(
-                      buttonVariants({ size: 'lg' }),
-                      "bg-brand text-white dark:bg-white dark:text-black hover:bg-brand/80 dark:hover:bg-zinc-200 px-8 h-14 text-lg font-bold rounded-md gap-3 shadow-lg transition-all"
-                    )}
-                  >
-                    <Play className="w-6 h-6 fill-current" />
-                    {type === 'tv' ? `Play S${selectedSeason} E${selectedEpisode}` : 'Play'}
-                  </a>
-                  
-                  {trailer && (
-                    <Button 
-                      size="lg"
-                      variant="outline"
-                      className="bg-muted/30 backdrop-blur-md border-border hover:bg-muted/50 text-foreground px-8 h-14 text-lg font-bold rounded-md gap-3 transition-all"
-                      onClick={() => setShowTrailer(true)}
+                {type === 'tv' && hasNextEpisode() && (
+                  <>
+                    <Button
+                      size="sm"
+                      className="h-8 px-4 rounded-full text-xs font-bold bg-foreground text-background hover:bg-foreground/90 gap-2"
+                      onClick={handleNextEpisode}
                     >
-                      <Youtube className="w-6 h-6 text-brand" />
-                      Trailer
+                      <SkipForward className="w-3 h-3 fill-current" />
+                      Next Episode
                     </Button>
-                  )}
-
-                  <motion.button
-                    initial={{ width: 56 }}
-                    animate={{ 
-                      width: details && !isInWatchlist ? [56, 260, 260, 56] : 56 
-                    }}
-                    transition={{ 
-                      duration: 3, 
-                      times: [0, 0.15, 0.85, 1],
-                      delay: 1,
-                      ease: "easeInOut"
-                    }}
-                    className={`h-14 flex items-center justify-center gap-2 rounded-md border transition-all overflow-hidden group backdrop-blur-md ${
-                      isInWatchlist 
-                        ? 'bg-brand border-brand text-white w-14 shadow-lg' 
-                        : 'bg-muted/30 border-border text-foreground hover:bg-muted/50 px-4'
-                    }`}
-                    onClick={handleToggleWatchlist}
-                  >
-                    <div className="flex-none flex items-center justify-center w-6 h-6">
-                      {isInWatchlist ? <Check className="w-6 h-6" /> : <Plus className="w-6 h-6" />}
+                  </>
+                )}
+              </div>
+            </div>
+          ) : (
+            <div className="relative w-full h-full">
+              <img 
+                src={getImageUrl(details.backdrop_path, 'original') || undefined} 
+                alt={details.title || details.name}
+                className="w-full h-full object-cover opacity-60"
+                referrerPolicy="no-referrer"
+              />
+              <div className="absolute inset-0 bg-black/30" />
+              <div className="absolute inset-0 bg-gradient-to-r from-black/60 via-transparent to-transparent" />
+              <div className="absolute inset-0 bg-gradient-to-t from-background via-background/20 to-transparent transition-colors duration-500" />
+              
+              <div className="absolute inset-0 flex flex-col justify-end pb-12 md:pb-24 px-4 md:px-12 max-w-7xl mx-auto z-10">
+                <div className="max-w-3xl space-y-6">
+                  <div className="flex items-center gap-4 text-white drop-shadow-md font-bold">
+                    <div className="flex items-center gap-1 text-yellow-500 bg-black/30 px-2 py-0.5 rounded backdrop-blur-sm border border-white/10">
+                      <Star className="w-4 h-4 fill-current" />
+                      <span>{details.vote_average.toFixed(1)}</span>
                     </div>
-                    {!isInWatchlist && (
-                      <motion.span
-                        initial={{ opacity: 0, width: 0 }}
+                    <span className="text-white/80 transition-colors">
+                      {new Date(details.release_date || details.first_air_date).getFullYear()}
+                    </span>
+                    {details.runtime && (
+                      <span className="text-white/80 flex items-center gap-1 transition-colors">
+                        <Clock className="w-4 h-4" />
+                        {Math.floor(details.runtime / 60)}h {details.runtime % 60}m
+                      </span>
+                    )}
+                    <span className="px-2 py-0.5 bg-black/40 backdrop-blur-md rounded text-[10px] uppercase tracking-widest text-white border border-white/20 transition-colors">
+                      {type === 'movie' ? 'Movie' : 'TV Show'}
+                    </span>
+                  </div>
+
+                  <h1 className="text-4xl md:text-6xl font-black tracking-tighter text-white leading-[0.85] drop-shadow-2xl">
+                    {details.title || details.name}
+                  </h1>
+
+                  <p className="text-base text-white/90 leading-relaxed line-clamp-3 md:line-clamp-none max-w-2xl drop-shadow-xl font-medium">
+                    {details.overview}
+                  </p>
+
+                  <div className="flex flex-wrap items-center gap-4 pt-4">
+                    <Button 
+                      size="lg" 
+                      className="bg-brand text-white dark:bg-white dark:text-black hover:bg-brand/80 dark:hover:bg-zinc-200 px-8 h-14 text-lg font-bold rounded-md gap-3 shadow-lg transition-all"
+                      onClick={handlePlay}
+                    >
+                      <Play className="w-6 h-6 fill-current" />
+                      Play
+                    </Button>
+                    
+                    {trailer && (
+                      <Button 
+                        size="lg"
+                        variant="outline"
+                        className="bg-muted/30 backdrop-blur-md border-border hover:bg-muted/50 text-foreground px-8 h-14 text-lg font-bold rounded-md gap-3 transition-all"
+                        onClick={() => setShowTrailer(true)}
+                      >
+                        <Youtube className="w-6 h-6 text-brand" />
+                        Trailer
+                      </Button>
+                    )}
+
+                    <motion.button
+                      initial={{ width: 56 }}
+                      animate={{ 
+                        width: details && !isInWatchlist ? [56, 260, 260, 56] : 56 
+                      }}
+                      transition={{ 
+                        duration: 3, 
+                        times: [0, 0.15, 0.85, 1],
+                        delay: 1,
+                        ease: "easeInOut"
+                      }}
+                      className={`h-14 flex items-center justify-center gap-2 rounded-md border transition-all overflow-hidden group backdrop-blur-md ${
+                        isInWatchlist 
+                          ? 'bg-brand border-brand text-white w-14 shadow-lg' 
+                          : 'bg-muted/30 border-border text-foreground hover:bg-muted/50 px-4'
+                      }`}
+                      onClick={handleToggleWatchlist}
+                    >
+                      <div className="flex-none flex items-center justify-center w-6 h-6">
+                        {isInWatchlist ? <Check className="w-6 h-6" /> : <Plus className="w-6 h-6" />}
+                      </div>
+                      {!isInWatchlist && (
+                        <motion.span
+                          initial={{ opacity: 0, width: 0 }}
+                          animate={{ 
+                            opacity: [0, 1, 1, 0],
+                            width: [0, "auto", "auto", 0]
+                          }}
+                          transition={{ 
+                            duration: 3, 
+                            times: [0, 0.15, 0.85, 1],
+                            delay: 1,
+                            ease: "easeInOut"
+                          }}
+                          className="text-sm font-bold uppercase tracking-widest whitespace-nowrap overflow-hidden"
+                        >
+                          Add to Watchlist
+                        </motion.span>
+                      )}
+                    </motion.button>
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+        </div>
+
+        <div className="max-w-7xl mx-auto w-full px-4 md:px-12 py-12">
+          <div className="space-y-16">
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-12">
+              <div className="lg:col-span-2 space-y-12">
+                {isPlaying && (
+                  <div className="space-y-6">
+                    <div className="flex items-center gap-4 text-sm font-bold">
+                      <div className="flex items-center gap-1 text-yellow-500">
+                        <Star className="w-4 h-4 fill-current" />
+                        <span>{details.vote_average.toFixed(1)}</span>
+                      </div>
+                      <span className="text-muted-foreground transition-colors">
+                        {new Date(details.release_date || details.first_air_date).getFullYear()}
+                      </span>
+                      {details.runtime && (
+                        <span className="text-muted-foreground flex items-center gap-1 transition-colors">
+                          <Clock className="w-4 h-4" />
+                          {Math.floor(details.runtime / 60)}h {details.runtime % 60}m
+                        </span>
+                      )}
+                      <span className="px-2 py-0.5 bg-muted rounded text-[10px] uppercase tracking-widest text-foreground border border-border transition-colors">
+                        {type === 'movie' ? 'Movie' : 'TV Show'}
+                      </span>
+                      <motion.button
+                        initial={{ width: 32 }}
                         animate={{ 
-                          opacity: [0, 1, 1, 0],
-                          width: [0, "auto", "auto", 0]
+                          width: details && !isInWatchlist ? [32, 220, 220, 32] : 32 
                         }}
                         transition={{ 
                           duration: 3, 
@@ -248,29 +624,61 @@ export default function Watch() {
                           delay: 1,
                           ease: "easeInOut"
                         }}
-                        className="text-sm font-bold uppercase tracking-widest whitespace-nowrap overflow-hidden"
+                        className={`h-8 flex items-center justify-center gap-2 rounded-full border transition-all overflow-hidden group ${
+                          isInWatchlist 
+                            ? 'bg-brand border-brand text-white w-8' 
+                            : 'border-border text-muted-foreground hover:text-foreground px-2'
+                        }`}
+                        onClick={handleToggleWatchlist}
                       >
-                        Add to Watchlist
-                      </motion.span>
-                    )}
-                  </motion.button>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <div className="max-w-7xl mx-auto w-full px-4 md:px-12 py-12">
-          <div className="space-y-16">
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-12">
-              <div className="lg:col-span-2 space-y-12">
-                <div className="flex flex-wrap gap-2">
-                  {details.genres?.map((genre: any) => (
-                    <span key={genre.id} className="text-xs text-muted-foreground border border-border px-3 py-1 rounded-full transition-colors">
-                      {genre.name}
-                    </span>
-                  ))}
-                </div>
+                        <div className="flex-none flex items-center justify-center w-4 h-4">
+                          {isInWatchlist ? <Check className="w-4 h-4" /> : <Plus className="w-4 h-4" />}
+                        </div>
+                        {!isInWatchlist && (
+                          <motion.span
+                            initial={{ opacity: 0, width: 0 }}
+                            animate={{ 
+                              opacity: [0, 1, 1, 0],
+                              width: [0, "auto", "auto", 0]
+                            }}
+                            transition={{ 
+                              duration: 3, 
+                              times: [0, 0.15, 0.85, 1],
+                              delay: 1,
+                              ease: "easeInOut"
+                            }}
+                            className="text-[10px] font-black uppercase tracking-widest whitespace-nowrap overflow-hidden"
+                          >
+                            Add to Watchlist
+                          </motion.span>
+                        )}
+                      </motion.button>
+                    </div>
+                    <h1 className="text-4xl md:text-6xl font-black tracking-tighter text-foreground transition-colors">
+                      {details.title || details.name}
+                    </h1>
+                    <div className="flex flex-wrap gap-2">
+                      {details.genres?.map((genre: any) => (
+                        <span key={genre.id} className="text-xs text-muted-foreground border border-border px-3 py-1 rounded-full transition-colors">
+                          {genre.name}
+                        </span>
+                      ))}
+                    </div>
+                    <p className="text-lg text-muted-foreground leading-relaxed max-w-4xl transition-colors">
+                      {details.overview}
+                    </p>
+                  </div>
+                )}
+                
+                {!isPlaying && (
+                  <div className="flex flex-wrap gap-2">
+                    {details.genres?.map((genre: any) => (
+                      <span key={genre.id} className="text-xs text-muted-foreground border border-border px-3 py-1 rounded-full transition-colors">
+                        {genre.name}
+                      </span>
+                    ))}
+                  </div>
+                )}
 
                 {/* Cast Section - Now under overview */}
                 <div className="space-y-6">
@@ -394,9 +802,8 @@ export default function Watch() {
 
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                       {episodes.map((ep) => (
-                        <a
+                        <button
                           key={ep.id}
-                          href={getWatchedUrl(ep.episode_number)}
                           className={`flex gap-4 p-3 rounded-xl transition-all text-left group ${
                             selectedEpisode === ep.episode_number 
                               ? 'bg-brand/10 border border-brand/50' 
@@ -404,12 +811,7 @@ export default function Watch() {
                           }`}
                           onClick={() => {
                             setSelectedEpisode(ep.episode_number);
-                            if (details?.id) {
-                              localStorage.setItem(`last_watched_${details.id}`, JSON.stringify({
-                                season: selectedSeason,
-                                episode: ep.episode_number
-                              }));
-                            }
+                            setIsPlaying(true);
                             addToRecentlyWatched(ep.episode_number);
                           }}
                         >
@@ -445,7 +847,7 @@ export default function Watch() {
                               {ep.overview || 'No description available.'}
                             </div>
                           </div>
-                        </a>
+                        </button>
                       ))}
                     </div>
                   </div>
