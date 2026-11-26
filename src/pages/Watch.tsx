@@ -28,7 +28,7 @@ import {
 } from "@/components/ui/dialog";
 import { motion } from 'motion/react';
 
-type ServerOption = 'watched' | 'vidcore' | 'peachify' | 'videasy' | 'vidsrc' | 'vidlink' | '111movies' | 'vidfast' | 'vidnest' | 'xpass';
+type ServerOption = 'vidcore' | 'peachify' | 'videasy' | 'vidsrc' | 'vidlink' | '111movies' | 'vidfast' | 'vidnest' | 'xpass';
 
 export default function Watch() {
   const { type, id } = useParams<{ type: string; id: string }>();
@@ -64,7 +64,7 @@ export default function Watch() {
     return 1;
   });
   const [episodes, setEpisodes] = useState<any[]>([]);
-  const [selectedServer, setSelectedServer] = useState<ServerOption>('watched');
+  const [selectedServer, setSelectedServer] = useState<ServerOption>('vidcore');
   const [showBackupSuggestion, setShowBackupSuggestion] = useState(false);
   const [isVideoActive, setIsVideoActive] = useState(false);
   const playerContainerRef = useRef<HTMLDivElement>(null);
@@ -261,11 +261,7 @@ export default function Watch() {
     const params = settings.autoplay ? 'autoPlay=true&nextButton=false' : 'autoPlay=false&nextButton=false';
     const tmdbParams = settings.autoplay ? '?autoplay=1' : '?autoplay=0';
     
-    if (selectedServer === 'watched') {
-      return type === 'movie'
-        ? `https://watched.cx/movie/${id}`
-        : `https://watched.cx/tv/${id}?s=${selectedSeason}&e=${selectedEpisode}`;
-    } else if (selectedServer === 'vidcore') {
+    if (selectedServer === 'vidcore') {
       return type === 'movie'
         ? `https://vidcore.net/movie/${id}?${params}`
         : `https://vidcore.net/tv/${id}/${selectedSeason}/${selectedEpisode}?${params}`;
@@ -382,19 +378,11 @@ export default function Watch() {
                 <div className="flex gap-2">
                   <Button
                     size="sm"
-                    variant={selectedServer === 'watched' ? 'default' : 'outline'}
-                    className={`h-8 px-4 rounded-full text-xs font-bold gap-2 ${selectedServer === 'watched' ? 'bg-brand hover:bg-brand/80 text-white' : 'border-border text-muted-foreground hover:text-foreground'}`}
-                    onClick={() => setSelectedServer('watched')}
-                  >
-                    Primary Server
-                  </Button>
-                  <Button
-                    size="sm"
                     variant={selectedServer === 'vidcore' ? 'default' : 'outline'}
                     className={`h-8 px-4 rounded-full text-xs font-bold gap-2 ${selectedServer === 'vidcore' ? 'bg-brand hover:bg-brand/80 text-white' : 'border-border text-muted-foreground hover:text-foreground'}`}
                     onClick={() => setSelectedServer('vidcore')}
                   >
-                    Secondary Server
+                    Primary Server
                     <span className="bg-white/20 text-[8px] px-1.5 py-0.5 rounded uppercase tracking-tighter">Ad-Free</span>
                   </Button>
                   <Button
@@ -403,7 +391,7 @@ export default function Watch() {
                     className={`h-8 px-4 rounded-full text-xs font-bold ${selectedServer === 'vidlink' ? 'bg-brand hover:bg-brand/80 text-white' : 'border-border text-muted-foreground hover:text-foreground'}`}
                     onClick={() => setSelectedServer('vidlink')}
                   >
-                    Alternative Server
+                    Secondary Server
                   </Button>
 
                   <DropdownMenu>

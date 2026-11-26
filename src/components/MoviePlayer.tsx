@@ -19,7 +19,7 @@ interface MoviePlayerProps {
   onClose: () => void;
 }
 
-type ServerOption = 'watched' | 'vidcore' | 'peachify' | 'videasy' | 'vidsrc' | 'vidlink' | '111movies' | 'vidfast' | 'vidnest' | 'xpass';
+type ServerOption = 'vidcore' | 'peachify' | 'videasy' | 'vidsrc' | 'vidlink' | '111movies' | 'vidfast' | 'vidnest' | 'xpass';
 
 export default function MoviePlayer({ item, isOpen, onClose }: MoviePlayerProps) {
   const [details, setDetails] = useState<any>(null);
@@ -49,7 +49,7 @@ export default function MoviePlayer({ item, isOpen, onClose }: MoviePlayerProps)
     return 1;
   });
   const [episodes, setEpisodes] = useState<any[]>([]);
-  const [selectedServer, setSelectedServer] = useState<ServerOption>('watched');
+  const [selectedServer, setSelectedServer] = useState<ServerOption>('vidcore');
   const [showBackupSuggestion, setShowBackupSuggestion] = useState(false);
   const [isVideoActive, setIsVideoActive] = useState(false);
   const playerContainerRef = useRef<HTMLDivElement>(null);
@@ -204,11 +204,7 @@ export default function MoviePlayer({ item, isOpen, onClose }: MoviePlayerProps)
   const type = item.media_type || (item.title ? 'movie' : 'tv');
 
   const getEmbedUrl = () => {
-    if (selectedServer === 'watched') {
-      return type === 'movie'
-        ? `https://watched.cx/movie/${item.id}`
-        : `https://watched.cx/tv/${item.id}?s=${selectedSeason}&e=${selectedEpisode}`;
-    } else if (selectedServer === 'vidcore') {
+    if (selectedServer === 'vidcore') {
       return type === 'movie'
         ? `https://vidcore.net/movie/${item.id}?autoPlay=true&nextButton=false`
         : `https://vidcore.net/tv/${item.id}/${selectedSeason}/${selectedEpisode}?autoPlay=true&nextButton=false`;
@@ -337,19 +333,11 @@ export default function MoviePlayer({ item, isOpen, onClose }: MoviePlayerProps)
                   <div className="flex gap-2">
                     <Button
                       size="sm"
-                      variant={selectedServer === 'watched' ? 'default' : 'outline'}
-                      className={`h-8 px-4 rounded-full text-xs font-bold gap-2 ${selectedServer === 'watched' ? 'bg-brand hover:bg-brand/80 text-white' : 'border-border text-muted-foreground hover:text-foreground'}`}
-                      onClick={() => setSelectedServer('watched')}
-                    >
-                      Primary Server
-                    </Button>
-                    <Button
-                      size="sm"
                       variant={selectedServer === 'vidcore' ? 'default' : 'outline'}
                       className={`h-8 px-4 rounded-full text-xs font-bold gap-2 ${selectedServer === 'vidcore' ? 'bg-brand hover:bg-brand/80 text-white' : 'border-border text-muted-foreground hover:text-foreground'}`}
                       onClick={() => setSelectedServer('vidcore')}
                     >
-                      Secondary Server
+                      Primary Server
                       <span className="bg-white/20 text-[8px] px-1.5 py-0.5 rounded uppercase tracking-tighter">Ad-Free</span>
                     </Button>
                     <Button
@@ -358,7 +346,7 @@ export default function MoviePlayer({ item, isOpen, onClose }: MoviePlayerProps)
                       className={`h-8 px-4 rounded-full text-xs font-bold ${selectedServer === 'vidlink' ? 'bg-brand hover:bg-brand/80 text-white' : 'border-border text-muted-foreground hover:text-foreground'}`}
                       onClick={() => setSelectedServer('vidlink')}
                     >
-                      Alternative Server
+                      Secondary Server
                     </Button>
 
                     <DropdownMenu>
