@@ -3,7 +3,7 @@ import { Dialog, DialogContent } from '@/components/ui/dialog';
 import { TMDBItem } from '../types';
 import { tmdbService, getImageUrl } from '../lib/tmdb';
 import { Button } from '@/components/ui/button';
-import { Play, X, Star, Calendar, Clock, User, ChevronLeft } from 'lucide-react';
+import { Play, X, Star, Calendar, Clock, User, ChevronLeft, SkipForward } from 'lucide-react';
 import { motion } from 'motion/react';
 
 interface MoviePlayerProps {
@@ -248,6 +248,7 @@ export default function MoviePlayer({ item, isOpen, onClose }: MoviePlayerProps)
         }
       } else if (data && typeof data === 'object') {
         if (
+          (data.source === 'bingeapi_player' && data.event === 'ended' && isPlaying && itemType === 'tv') ||
           nextEvents.includes(data.event) || 
           nextEvents.includes(data.type) || 
           (data.event === 'vidsrc_event' && data.data === 'next_episode') ||
@@ -272,13 +273,34 @@ export default function MoviePlayer({ item, isOpen, onClose }: MoviePlayerProps)
 
   const type = item.media_type || (item.title ? 'movie' : 'tv');
 
+  const hasNextEpisode = () => {
+    if (!details || type !== 'tv') return false;
+    const nextEpisodeNum = selectedEpisode + 1;
+    if (episodes.length > 0 && nextEpisodeNum <= episodes.length) return true;
+    if (details.number_of_seasons && selectedSeason < details.number_of_seasons) return true;
+    return false;
+  };
+
+  const handleNextEpisode = () => {
+    const nextEpisodeNum = selectedEpisode + 1;
+    if (episodes.length > 0 && nextEpisodeNum <= episodes.length) {
+      setSelectedEpisode(nextEpisodeNum);
+      setPlayerTarget(prev => ({ season: selectedSeason, episode: nextEpisodeNum, reloadKey: prev.reloadKey + 1 }));
+    } else if (details?.number_of_seasons && selectedSeason < details.number_of_seasons) {
+      const nextSeasonNum = selectedSeason + 1;
+      setSelectedSeason(nextSeasonNum);
+      setSelectedEpisode(1);
+      setPlayerTarget(prev => ({ season: nextSeasonNum, episode: 1, reloadKey: prev.reloadKey + 1 }));
+    }
+  };
+
   const getEmbedUrl = () => {
     // 4K servers (80 Sirius, 94 Tarazed, 87 Yildun, 84 Wezen, 88 Nashira) then HD servers
     const serverOrder = '80,94,87,84,88,81,85,86,93,82,92,91';
-    const query = `?autoplay=1&right_click=0&servers=${serverOrder}`;
+    const baseQuery = `autoplay=1&right_click=0&servers=${serverOrder}`;
     return type === 'movie'
-      ? `https://bingeapi.st/embed/movie/${item.id}${query}`
-      : `https://bingeapi.st/embed/tv/${item.id}/${playerTarget.season}/${playerTarget.episode}${query}`;
+      ? `https://bingeapi.st/embed/movie/${item.id}?${baseQuery}`
+      : `https://bingeapi.st/embed/tv/${item.id}/${playerTarget.season}/${playerTarget.episode}?${baseQuery}&episodes=0&next=0&autonext=0`;
   };
 
   const embedUrl = getEmbedUrl();
@@ -329,6 +351,26 @@ export default function MoviePlayer({ item, isOpen, onClose }: MoviePlayerProps)
                   allow="autoplay; fullscreen; encrypted-media; picture-in-picture"
                   referrerPolicy="origin"
                 />
+                {type === 'tv' && (
+                  <div className="bg-muted/80 backdrop-blur-md p-3 md:p-4 flex items-center justify-center gap-4 border-t border-border">
+                    <span className="text-xs font-bold text-muted-foreground uppercase tracking-widest">
+                      Season {selectedSeason} · Episode {selectedEpisode}
+                    </span>
+                    {hasNextEpisode() && (
+                      <>
+                        <div className="h-4 w-[1px] bg-border" />
+                        <Button
+                          size="sm"
+                          className="h-8 px-4 rounded-full text-xs font-bold bg-foreground text-background hover:bg-foreground/90 gap-2"
+                          onClick={handleNextEpisode}
+                        >
+                          <SkipForward className="w-3 h-3 fill-current" />
+                          Next Episode
+                        </Button>
+                      </>
+                    )}
+                  </div>
+                )}
               </div>
             ) : (
               <div className="relative w-full h-full">

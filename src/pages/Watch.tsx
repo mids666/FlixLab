@@ -316,6 +316,7 @@ export default function Watch() {
         }
       } else if (data && typeof data === 'object') {
         if (
+          (data.source === 'bingeapi_player' && data.event === 'ended' && isPlaying && type === 'tv') ||
           nextEvents.includes(data.event) || 
           nextEvents.includes(data.type) || 
           (data.event === 'vidsrc_event' && data.data === 'next_episode') ||
@@ -340,10 +341,10 @@ export default function Watch() {
     // 4K servers (80 Sirius, 94 Tarazed, 87 Yildun, 84 Wezen, 88 Nashira) then HD servers
     const serverOrder = '80,94,87,84,88,81,85,86,93,82,92,91';
     const autoplay = settings.autoplay ? 1 : 0;
-    const query = `?autoplay=${autoplay}&right_click=0&servers=${serverOrder}`;
+    const baseQuery = `autoplay=${autoplay}&right_click=0&servers=${serverOrder}`;
     return type === 'movie'
-      ? `https://bingeapi.st/embed/movie/${id}${query}`
-      : `https://bingeapi.st/embed/tv/${id}/${playerTarget.season}/${playerTarget.episode}${query}`;
+      ? `https://bingeapi.st/embed/movie/${id}?${baseQuery}`
+      : `https://bingeapi.st/embed/tv/${id}/${playerTarget.season}/${playerTarget.episode}?${baseQuery}&episodes=0&next=0&autonext=0`;
   };
 
   const embedUrl = getEmbedUrl();
