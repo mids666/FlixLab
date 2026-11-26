@@ -30,6 +30,13 @@ async function startServer() {
 
   app.use(cors());
   app.use(express.json());
+  app.use((_req, res, next) => {
+    res.setHeader(
+      "Permissions-Policy",
+      "picture-in-picture=*, fullscreen=*, autoplay=*, encrypted-media=*"
+    );
+    next();
+  });
 
   // Health check
   app.get("/api/health", (req, res) => {

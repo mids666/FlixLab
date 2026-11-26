@@ -379,7 +379,7 @@ export default function Watch() {
                 webkitallowfullscreen="true"
                 // @ts-ignore
                 mozallowfullscreen="true"
-                allow="autoplay; fullscreen; encrypted-media; picture-in-picture"
+                allow="autoplay *; fullscreen *; encrypted-media *; picture-in-picture *"
                 referrerPolicy="origin"
               />
 

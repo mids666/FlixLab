@@ -348,7 +348,7 @@ export default function MoviePlayer({ item, isOpen, onClose }: MoviePlayerProps)
                   webkitallowfullscreen="true"
                   // @ts-ignore
                   mozallowfullscreen="true"
-                  allow="autoplay; fullscreen; encrypted-media; picture-in-picture"
+                  allow="autoplay *; fullscreen *; encrypted-media *; picture-in-picture *"
                   referrerPolicy="origin"
                 />
                 {type === 'tv' && (
