@@ -192,8 +192,6 @@ export default function Watch() {
                 <div className="flex flex-wrap items-center gap-4 pt-4">
                   <a
                     href={getWatchedUrl()}
-                    target="_blank"
-                    rel="noopener noreferrer"
                     onClick={() => addToRecentlyWatched()}
                     className={cn(
                       buttonVariants({ size: 'lg' }),
@@ -399,8 +397,6 @@ export default function Watch() {
                         <a
                           key={ep.id}
                           href={getWatchedUrl(ep.episode_number)}
-                          target="_blank"
-                          rel="noopener noreferrer"
                           className={`flex gap-4 p-3 rounded-xl transition-all text-left group ${
                             selectedEpisode === ep.episode_number 
                               ? 'bg-brand/10 border border-brand/50' 
@@ -408,6 +404,12 @@ export default function Watch() {
                           }`}
                           onClick={() => {
                             setSelectedEpisode(ep.episode_number);
+                            if (details?.id) {
+                              localStorage.setItem(`last_watched_${details.id}`, JSON.stringify({
+                                season: selectedSeason,
+                                episode: ep.episode_number
+                              }));
+                            }
                             addToRecentlyWatched(ep.episode_number);
                           }}
                         >

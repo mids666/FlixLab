@@ -148,8 +148,6 @@ export default function MoviePlayer({ item, isOpen, onClose }: MoviePlayerProps)
                 >
                   <a
                     href={getWatchedUrl()}
-                    target="_blank"
-                    rel="noopener noreferrer"
                     className={cn(
                       buttonVariants({ size: 'lg' }),
                       "bg-brand text-white dark:bg-white dark:text-black hover:bg-brand/80 dark:hover:bg-zinc-200 h-20 px-16 rounded-full text-2xl font-bold gap-4 shadow-2xl shadow-white/10"
@@ -264,8 +262,6 @@ export default function MoviePlayer({ item, isOpen, onClose }: MoviePlayerProps)
                       <a
                         key={ep.id}
                         href={getWatchedUrl(ep.episode_number)}
-                        target="_blank"
-                        rel="noopener noreferrer"
                         className={`flex flex-col gap-4 p-6 rounded-3xl transition-all text-left group/ep ${
                           selectedEpisode === ep.episode_number 
                             ? 'bg-brand/10 border-2 border-brand' 
@@ -273,6 +269,12 @@ export default function MoviePlayer({ item, isOpen, onClose }: MoviePlayerProps)
                         }`}
                         onClick={() => {
                           setSelectedEpisode(ep.episode_number);
+                          if (details?.id) {
+                            localStorage.setItem(`last_watched_${details.id}`, JSON.stringify({
+                              season: selectedSeason,
+                              episode: ep.episode_number
+                            }));
+                          }
                         }}
                       >
                         <div className="w-full aspect-video rounded-2xl overflow-hidden flex-none bg-muted relative">
