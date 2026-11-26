@@ -11,7 +11,12 @@ import {
   Check,
   MoreHorizontal,
   ChevronRight,
-  ChevronLeft
+  ChevronLeft,
+  Film,
+  Tv,
+  User,
+  ArrowRight,
+  Loader2
 } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
@@ -37,12 +42,19 @@ export default function Discover() {
   const [searchQuery, setSearchQuery] = useState(queryParam);
   const [isSearching, setIsSearching] = useState(!!queryParam);
   const [searchResults, setSearchResults] = useState<any[]>([]);
+  const [liveSuggestions, setLiveSuggestions] = useState<TMDBItem[]>([]);
+  const [showSuggestions, setShowSuggestions] = useState(false);
+  const [suggestionsLoading, setSuggestionsLoading] = useState(false);
+  const [highlightedIndex, setHighlightedIndex] = useState(-1);
+
+  const searchContainerRef = useRef<HTMLDivElement>(null);
+  const liveSeqRef = useRef(0);
 
   const handleSearchInternal = useCallback(async (q: string) => {
     setLoading(true);
     try {
-      const data = await tmdbService.search(q);
-      setSearchResults(data.results.filter((i: any) => i.poster_path || i.profile_path));
+      const data = await tmdbService.smartSearch(q);
+      setSearchResults(data.results.filter((i: any) => i.poster_path || i.profile_path || i.backdrop_path));
     } catch (error) {
       console.error('Search failed:', error);
     } finally {
@@ -54,6 +66,7 @@ export default function Discover() {
     if (queryParam) {
       setSearchQuery(queryParam);
       setIsSearching(true);
+      setShowSuggestions(false);
       handleSearchInternal(queryParam);
     } else {
       setIsSearching(false);
@@ -61,14 +74,92 @@ export default function Discover() {
     }
   }, [queryParam, handleSearchInternal]);
 
+  // Debounced instant Google-style autocomplete as the user types
+  useEffect(() => {
+    const trimmed = searchQuery.trim();
+    if (!trimmed) {
+      setLiveSuggestions([]);
+      setSuggestionsLoading(false);
+      setHighlightedIndex(-1);
+      return;
+    }
+
+    const seq = ++liveSeqRef.current;
+    setSuggestionsLoading(true);
+
+    const timer = setTimeout(async () => {
+      try {
+        const data = await tmdbService.smartSearch(trimmed, 1);
+        if (seq !== liveSeqRef.current) return;
+        setLiveSuggestions((data.results || []).slice(0, 8));
+        setHighlightedIndex(-1);
+      } catch (error) {
+        if (seq === liveSeqRef.current) {
+          console.error('Discover live autocomplete failed:', error);
+          setLiveSuggestions([]);
+        }
+      } finally {
+        if (seq === liveSeqRef.current) {
+          setSuggestionsLoading(false);
+        }
+      }
+    }, 200);
+
+    return () => clearTimeout(timer);
+  }, [searchQuery]);
+
+  // Close autocomplete dropdown on outside click
+  useEffect(() => {
+    const handleClickOutside = (e: MouseEvent) => {
+      if (searchContainerRef.current && !searchContainerRef.current.contains(e.target as Node)) {
+        setShowSuggestions(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
+
+  const navigateToSuggestion = (item: TMDBItem) => {
+    setShowSuggestions(false);
+    if (item.media_type === 'person') {
+      navigate(`/person/${item.id}`);
+    } else {
+      const type = item.media_type || (item.title ? 'movie' : 'tv');
+      navigate(`/watch/${type}/${item.id}`);
+    }
+  };
+
   const handleSearch = (e?: React.FormEvent) => {
     if (e) e.preventDefault();
+    if (showSuggestions && highlightedIndex >= 0 && liveSuggestions[highlightedIndex]) {
+      navigateToSuggestion(liveSuggestions[highlightedIndex]);
+      return;
+    }
+    setShowSuggestions(false);
     if (!searchQuery.trim()) {
       setIsSearching(false);
       navigate('/discover');
       return;
     }
-    navigate(`/discover?q=${encodeURIComponent(searchQuery)}`);
+    navigate(`/discover?q=${encodeURIComponent(searchQuery.trim())}`);
+  };
+
+  const handleSearchKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === 'ArrowDown') {
+      e.preventDefault();
+      if (liveSuggestions.length > 0) {
+        setShowSuggestions(true);
+        setHighlightedIndex((prev) => (prev + 1) % liveSuggestions.length);
+      }
+    } else if (e.key === 'ArrowUp') {
+      e.preventDefault();
+      if (liveSuggestions.length > 0) {
+        setShowSuggestions(true);
+        setHighlightedIndex((prev) => (prev <= 0 ? liveSuggestions.length - 1 : prev - 1));
+      }
+    } else if (e.key === 'Escape') {
+      setShowSuggestions(false);
+    }
   };
   const [activeGenre, setActiveGenre] = useState<number | null>(null);
   const [featuredTrailer, setFeaturedTrailer] = useState<string | null>(null);
@@ -212,35 +303,139 @@ export default function Discover() {
   const currentFeatured = items[0];
 
   return (
-    <div className="min-h-screen bg-background pt-16 pb-20">
+    <div className="min-h-screen bg-background pt-28 pb-24">
       <div className="max-w-[1600px] mx-auto px-4 md:px-8 space-y-8">
         
-        {/* Header with Search */}
+        {/* Header with Google-Style Instant Search Autocomplete */}
         <div className="flex flex-col items-center justify-center gap-6 pb-2">
-          <form className="relative group max-w-2xl w-full" onSubmit={handleSearch}>
-            <SearchIcon className="absolute left-6 top-1/2 -translate-y-1/2 w-6 h-6 text-muted-foreground group-focus-within:text-brand transition-colors" />
-            <Input 
-              placeholder="Search movies, tv shows..."
-              className="bg-muted/50 border-none pl-16 h-16 rounded-[2rem] w-full text-lg focus:ring-2 focus:ring-brand/20 shadow-xl"
-              value={searchQuery}
-              onChange={(e) => {
-                setSearchQuery(e.target.value);
-                if (!e.target.value) setIsSearching(false);
-              }}
-            />
-            {searchQuery && (
-              <button 
-                type="button"
-                onClick={() => {
-                  setSearchQuery('');
-                  setIsSearching(false);
+          <div ref={searchContainerRef} className="relative max-w-2xl w-full z-40">
+            <form className="relative group w-full" onSubmit={handleSearch}>
+              <SearchIcon className="absolute left-6 top-1/2 -translate-y-1/2 w-6 h-6 text-muted-foreground group-focus-within:text-brand transition-colors" />
+              <Input 
+                placeholder="Search movies, tv shows..."
+                className="bg-muted/50 border-none pl-16 pr-20 h-16 rounded-[2rem] w-full text-lg focus:ring-2 focus:ring-brand/20 shadow-xl"
+                value={searchQuery}
+                onFocus={() => {
+                  if (searchQuery.trim()) setShowSuggestions(true);
                 }}
-                className="absolute right-6 top-1/2 -translate-y-1/2 p-2 hover:bg-muted rounded-full transition-colors"
-              >
-                <X className="w-5 h-5 text-muted-foreground" />
-              </button>
-            )}
-          </form>
+                onKeyDown={handleSearchKeyDown}
+                onChange={(e) => {
+                  const val = e.target.value;
+                  setSearchQuery(val);
+                  if (!val.trim()) {
+                    setIsSearching(false);
+                    setShowSuggestions(false);
+                    setLiveSuggestions([]);
+                  } else {
+                    setShowSuggestions(true);
+                  }
+                }}
+              />
+              {suggestionsLoading && (
+                <Loader2 className="absolute right-16 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground animate-spin" />
+              )}
+              {searchQuery && (
+                <button 
+                  type="button"
+                  onClick={() => {
+                    setSearchQuery('');
+                    setIsSearching(false);
+                    setShowSuggestions(false);
+                    setLiveSuggestions([]);
+                  }}
+                  className="absolute right-6 top-1/2 -translate-y-1/2 p-2 hover:bg-muted rounded-full transition-colors cursor-pointer"
+                >
+                  <X className="w-5 h-5 text-muted-foreground" />
+                </button>
+              )}
+            </form>
+
+            {/* Instant Google-Style Thumbnail Dropdown */}
+            <AnimatePresence>
+              {showSuggestions && searchQuery.trim() && (
+                <motion.div
+                  initial={{ opacity: 0, y: 6 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: 6 }}
+                  transition={{ duration: 0.14 }}
+                  className="absolute top-full left-0 right-0 mt-2.5 bg-zinc-950/95 backdrop-blur-2xl border border-white/15 rounded-3xl shadow-2xl overflow-hidden z-50"
+                >
+                  {liveSuggestions.length > 0 ? (
+                    <div className="max-h-[60vh] overflow-y-auto divide-y divide-white/5">
+                      {liveSuggestions.map((item, idx) => {
+                        const thumbPath = item.poster_path || item.profile_path || item.backdrop_path;
+                        const year = (item.release_date || item.first_air_date)?.slice(0, 4);
+                        const label =
+                          item.media_type === 'person'
+                            ? 'Person'
+                            : item.media_type === 'tv' || (!item.title && item.name)
+                            ? 'TV Show'
+                            : 'Movie';
+                        const rating =
+                          item.vote_average !== undefined && item.vote_average > 0
+                            ? `★ ${item.vote_average.toFixed(1)}`
+                            : null;
+                        const meta = [label, year, rating].filter(Boolean).join(' · ');
+                        const isHighlighted = idx === highlightedIndex;
+
+                        return (
+                          <button
+                            key={`${item.media_type || 'item'}-${item.id}`}
+                            type="button"
+                            onClick={() => navigateToSuggestion(item)}
+                            onMouseEnter={() => setHighlightedIndex(idx)}
+                            className={`w-full flex items-center gap-3.5 px-5 py-3 text-left transition-colors cursor-pointer ${
+                              isHighlighted ? 'bg-white/10' : 'hover:bg-white/5'
+                            }`}
+                          >
+                            <div className="w-11 h-16 rounded-lg overflow-hidden bg-white/10 flex-none flex items-center justify-center">
+                              {thumbPath ? (
+                                <img
+                                  src={getImageUrl(thumbPath, 'w185') || undefined}
+                                  alt={item.title || item.name || 'Poster'}
+                                  className="w-full h-full object-cover"
+                                  referrerPolicy="no-referrer"
+                                />
+                              ) : item.media_type === 'person' ? (
+                                <User className="w-5 h-5 text-white/40" />
+                              ) : item.media_type === 'tv' ? (
+                                <Tv className="w-5 h-5 text-white/40" />
+                              ) : (
+                                <Film className="w-5 h-5 text-white/40" />
+                              )}
+                            </div>
+                            <div className="min-w-0 flex-1">
+                              <div className="text-sm sm:text-base font-semibold text-white truncate">
+                                {item.title || item.name}
+                              </div>
+                              <div className="text-xs text-white/55 mt-0.5 truncate">{meta}</div>
+                            </div>
+                            <ArrowRight className="w-4 h-4 text-white/35 shrink-0" />
+                          </button>
+                        );
+                      })}
+                      <button
+                        type="button"
+                        onClick={() => handleSearch()}
+                        className="w-full px-5 py-3.5 text-sm font-semibold text-white/80 hover:text-white hover:bg-white/10 flex items-center justify-between transition-colors cursor-pointer"
+                      >
+                        <span>See all results for &ldquo;{searchQuery.trim()}&rdquo;</span>
+                        <ArrowRight className="w-4 h-4" />
+                      </button>
+                    </div>
+                  ) : !suggestionsLoading ? (
+                    <div className="px-6 py-6 text-center text-white/55 text-sm">
+                      No quick matches for &ldquo;{searchQuery.trim()}&rdquo;. Press Enter to run full search.
+                    </div>
+                  ) : (
+                    <div className="px-6 py-6 text-center text-white/55 text-sm">
+                      Searching...
+                    </div>
+                  )}
+                </motion.div>
+              )}
+            </AnimatePresence>
+          </div>
         </div>
 
         {/* Genre Selection Bar */}

@@ -44,7 +44,7 @@ export default function Search() {
       if (providerId) {
         data = await tmdbService.getByProvider(providerId, page);
       } else {
-        data = await tmdbService.search(query, page);
+        data = await tmdbService.smartSearch(query, page);
       }
 
       // Filter out items without posters or backdrops or profile path (for people)
